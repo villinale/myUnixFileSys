@@ -1,45 +1,79 @@
 #pragma once
 #define _CRT_SECURE_NO_WARNINGS
-# include <iostream>
-# include <fstream>
-# include <string>
-# include <time.h>
-# include <iomanip>
-#include<bitset>
+
+#define ROOT_ID		0
+#define ROOT_GID	0
+
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <time.h>
+#include <iomanip>
+#include "errno.h"
 using namespace std;
 
-//Inode中可以使用的最大物理块数量 
-static const int NUM_I_ADDR = 10;
+
+//文件卷名称
+static const string DISK_PATH = "myDisk.img";
+//文件逻辑块大小: 512字节
+static const int BLOCK_SIZE = 512;
+
 //SuperBlock中能够管理的最大空闲Inode与空闲数据盘块的数量
 static const int NUM_FREE_BLOCK_GROUP = 100;
+//SuperBlock开始的位置（以block为单位）
+static const unsigned int SUPERBLOCK_POSITION = 0;
+
+//Inode数量
+static const int NUM_INODE = 256;
+//Inode中可以使用的最大物理块数量 
+static const int NUM_I_ADDR = 10;
+//Inode大小（以字节为单位）
+static const int INODE_SIZE = 64;
+//Inode开始的位置（以block为单位）
+static const unsigned int INODE_POSITION = 2;
+
+//Block数量
+static const int NUM_BLOCK = 1000000;
+//Block开始的位置（以block为单位）
+static const unsigned int BLOCK_POSITION = int(INODE_POSITION + INODE_SIZE * NUM_INODE / BLOCK_SIZE);
+
+//规定：User内容最多占一个BLOCK，即:NUM_USER*(NUM_USER_NAME+NUM_USER_PASSWORD)<=BLOCK_SIZE
+//规定：User内容在数据区的第二个Block中
 //User中最多用户数
-static const int NUM_USER = 5;
+static const int NUM_USER = 8;
 //User用户名称的最大长度
-static const unsigned int NUM_USER_NAME = 16;
+static const unsigned int NUM_USER_NAME = (BLOCK_SIZE / NUM_USER - sizeof(short) * 2) / 2;
 //User用户密码的最大长度
-static const unsigned int NUM_USER_PASSWORD = 32;
-//Directory中一个目录下最多子目录个数
-static const int NUM_SUB_DIR = 10;
+static const unsigned int NUM_USER_PASSWORD = (BLOCK_SIZE / NUM_USER - sizeof(short) * 2) / 2;
+//User开始的位置（以block为单位）
+static const unsigned int USER_POSITION = BLOCK_POSITION + 1;
+
 //BufferManager缓存控制块、缓冲区的数量
 static const int NUM_BUF = 15;
 //BufferManager缓冲区大小。 以字节为单位
 static const int BUFFER_SIZE = 512;
-//Directory中一个目录下子目录文件名最大长度
-static const int NUM_FILE_NAME = 20;
 
-//文件逻辑块大小: 512字节
-static const int BLOCK_SIZE = 512;
+//规定：根目录在数据区的第一个Block中
+//Directory中一个目录下子目录文件名最大长度
+static const int NUM_FILE_NAME = 28;
+//Directory中一个目录下最多子目录个数
+static const int NUM_SUB_DIR = BLOCK_SIZE / (NUM_FILE_NAME + sizeof(int));
+//Directory开始的位置（以block为单位）
+static const unsigned int DIRECTORY_POSITION = BLOCK_POSITION;
 
 /*
  * 用户User类的定义
  * 由于有多个用户，但是没有实现多用户多进程文件读写，还是一种“伪并发”
  */
-struct User {
-	unsigned short u_id[NUM_USER];//用户id
-	unsigned short u_gid[NUM_USER];//用户所在组id
+class User {
+public:
+	short u_id[NUM_USER];//用户id
+	short u_gid[NUM_USER];//用户所在组id
 	char u_name[NUM_USER][NUM_USER_NAME];     //用户名
 	char u_password[NUM_USER][NUM_USER_PASSWORD]; //用户密码
+	User();
 };
+void AddUser(const short id, const char* name, const char* password, const short givengid);
 
 /*
  * 内存索引节点INode类的定义
@@ -88,24 +122,23 @@ public:
 						的物理盘块号保存在rablock中。 */
 
 public:
-	unsigned int i_number; /* 在inode区中的编号 */
+	unsigned short i_number; /* 在inode区中的编号 */
 
 	unsigned short i_uid; /* 文件所有者的用户标识数 */
 	unsigned short i_gid; /* 文件所有者的组标识数 */
 
-	unsigned int i_type; /* 文件类型，定义见enum INodeType */
-	unsigned int i_flag; /* 状态的标志位，定义见enum INodeFlag */
-	unsigned int i_mode; /* 文件权限，定义见enum INodeMode */
+	unsigned short i_type; /* 文件类型，定义见enum INodeType */
+	unsigned short i_flag; /* 状态的标志位，定义见enum INodeFlag */
+	unsigned short i_mode; /* 文件权限，定义见enum INodeMode */
 
-	unsigned int i_count;	/* 引用计数 */
-	//int i_nlink; /* 文件联结计数，即该文件在目录树中不同路径名的数量 */
+	unsigned short i_count;	/* 引用计数 */
+	unsigned short i_nlink; /* 文件联结计数，即该文件在目录树中不同路径名的数量 */
 
 	unsigned int i_size;				/* 文件大小，字节为单位 */
 	unsigned int i_addr[NUM_I_ADDR]; /* 用于文件逻辑块号和物理块号转换的基本索引表 */
 
 	unsigned int i_lastr;	/* 存放最近一次读取文件的逻辑块号，用于判断是否需要预读 */
 };
-
 
 /*
  * 文件系统存储资源管理块(Super Block)的定义。
@@ -145,7 +178,7 @@ public:
 /*
 * 目录Directory类
 * 该结构实现了树形带交叉勾连的目录结构
-* 每一个目录结构是一个
+* 一个Directory类就一个BLOCK大小
 */
 struct Directory {
 	unsigned int d_inodenumber[NUM_SUB_DIR];//子目录Inode号
