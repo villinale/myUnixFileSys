@@ -1,8 +1,9 @@
 #pragma once
 
-#define	EPERM	1	//Operation not permitted 操作不允许
-#define	ENOENT	2	//No such file or directory 没有这样的文件或目录
-#define	EUSERS	87	//Too many users 用户太多
+#define EPERM 1   // Operation not permitted 操作不允许
+#define ENOENT 2  // No such file or directory 没有这样的文件或目录
+#define ENOSPC 28 // No space left on device 设备上没有空间
+#define EUSERS 87 // Too many users 用户太多
 
 /*
 #define	ESRCH	3	//No such process 没有这样的过程
@@ -30,7 +31,6 @@
 #define	ENOTTY	25	//Not a tty device 不是tty设备
 #define	ETXTBSY	26	//Text file busy 文本文件忙
 #define	EFBIG	27	//File too large 文件太大
-#define	ENOSPC	28	//No space left on device 设备上没有空间
 #define	ESPIPE	29	//Illegal seek 非法移位
 #define	EROFS	30	//Read-only file system 只读文件系统
 #define	EMLINK	31	//Too many links 太多的链接

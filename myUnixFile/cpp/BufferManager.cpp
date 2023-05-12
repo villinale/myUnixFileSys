@@ -80,8 +80,7 @@ Buf* BufferManager::GetBlk(int blkno)
     //自由队列为空
     if (this->bFreeList.av_forw == &this->bFreeList)
     {
-        //TODO:这里也没太搞懂
-        //不太可能
+        //不太可能，因为每次都是设备读写之后就立即释放字符块
     }
 
     //取自由队列第一个空闲块
@@ -125,9 +124,8 @@ void BufferManager::Bwrite(Buf* bp)
     bp->b_flags |= Buf::B_WRITE;
     fstream fd;
     fd.open(DISK_PATH, ios::in | ios::out | ios::binary);
-    if (!fd.is_open())
-    {
-        cout << "无法打开一级磁盘文件" << DISK_PATH << endl;
+    if (!fd.is_open()) {
+        cout << "无法打开一级磁盘文件myDisk.img" << endl;
         throw(ENOENT);
     }
     //TODO：这里可能要修改
@@ -176,9 +174,8 @@ Buf* BufferManager::Bread(int blkno)
     //开始读操作
     fstream fin;
     fin.open(DISK_PATH, ios::in | ios::binary);
-    if (!fin.is_open())
-    {
-        cout << "无法打开一级磁盘文件" << DISK_PATH << endl;
+    if (!fin.is_open()) {
+        cout << "无法打开一级磁盘文件myDisk.img" << endl;
         throw(ENOENT);
     }
     //TODO:也没太搞懂为啥要读SIZE_BUFFER字节
