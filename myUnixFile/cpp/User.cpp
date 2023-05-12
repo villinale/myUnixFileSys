@@ -6,7 +6,6 @@
  * @Description: User相关操作
  */
 #include "../h/header.h"
-#include "../h/Utility.h"
 
 User::User()
 {
@@ -17,7 +16,14 @@ User::User()
 	}
 }
 
-void AddUser(const short id, const char* name, const char* password, const short givengid)
+/// <summary>
+/// 添加用户
+/// </summary>
+/// <param name="id">进行操作的用户id</param>
+/// <param name="name">所要添加的用户名</param>
+/// <param name="password">所要添加的用户密码</param>
+/// <param name="givengid">所要添加的用户gid</param>
+void User::AddUser(const short id, const char *name, const char *password, const short givengid)
 {
 	if (id != ROOT_ID)
 	{
@@ -26,18 +32,14 @@ void AddUser(const short id, const char* name, const char* password, const short
 		return;
 	}
 
-	User user;
-	Utility::ReadUser(user);
-
-	for (int i = 0; i < NUM_USER; i++)
+	for (int i = 1; i < NUM_USER; i++)
 	{
-		if (user.u_id[i] == -1)
+		if (this->u_id[i] == -1)
 		{
-			strcpy(user.u_name[i], name);
-			strcpy(user.u_password[i], password);
-			user.u_id[i] = i;
-			user.u_gid[i] = givengid;
-			Utility::WriteUser(user);
+			strcpy(this->u_name[i], name);
+			strcpy(this->u_password[i], password);
+			this->u_id[i] = i;
+			this->u_gid[i] = givengid;
 			cout << "创建成功！" << endl;
 			throw(EUSERS);
 			return;
@@ -48,8 +50,12 @@ void AddUser(const short id, const char* name, const char* password, const short
 	return;
 }
 
-
-void DeleteUser(const short id, const char* name)
+/// <summary>
+/// 删除指定用户
+/// </summary>
+/// <param name="id">进行操作的用户id</param>
+/// <param name="name">所要删除的用户名</param>
+void User::DeleteUser(const short id, const char *name)
 {
 	if (id != ROOT_ID)
 	{
@@ -58,20 +64,23 @@ void DeleteUser(const short id, const char* name)
 		return;
 	}
 
-	User user;
-	Utility::ReadUser(user);
+	if (strcmp(name, "root") == 0)
+	{
+		cout << "root用户不可以被删除" << endl;
+		throw(EPERM);
+		return;
+	}
 
 	bool isfind = false;
-	for (int i = 0; i < NUM_USER; i++)
+	for (int i = 1; i < NUM_USER; i++)
 	{
-		if (strcmp(user.u_name[i], name) == 0)
+		if (strcmp(this->u_name[i], name) == 0)
 		{
 			isfind = true;
-			user.u_id[i] = -1;
-			user.u_gid[i] = -1; 
-			strcpy(user.u_name[i], "");
-			strcpy(user.u_password[i], "");
-			Utility::WriteUser(user);
+			this->u_id[i] = -1;
+			this->u_gid[i] = -1;
+			strcpy(this->u_name[i], "");
+			strcpy(this->u_password[i], "");
 			cout << "删除成功！" << endl;
 			return;
 		}

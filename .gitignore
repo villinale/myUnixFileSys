@@ -34,3 +34,6 @@
 #VS
 .vs
 x64
+
+#VSCODE
+.vscode
