@@ -34,7 +34,7 @@ static const unsigned int POSITION_DISKINODE = 2;
 // Block数量
 static const int NUM_BLOCK = 1000000;
 // Block开始的位置（以block为单位）
-static const unsigned int POSITION_BLOCK = int(POSITION_DISKINODE + SIZE_DISKINODE * NUM_DISKINODE / SIZE_DISKINODE);
+static const unsigned int POSITION_BLOCK = int(POSITION_DISKINODE + SIZE_DISKINODE * NUM_DISKINODE / SIZE_BLOCK);
 
 // 规定：User内容最多占一个BLOCK，即:NUM_USER*(NUM_USER_NAME+NUM_USER_PASSWORD)<=BLOCK_SIZE
 // 规定：User内容在数据区的第二个Block中
@@ -82,7 +82,7 @@ public:
 /*
  * 内存索引节点INode类的定义
  * 系统中每一个打开的文件、当前访问目录、挂载的子文件系统都对应唯一的内存inode。
- * 由于没有外存，所以不需要存储设备设备号，仅需要i_number来确定位置
+ * 由于只有一个设备，所以不需要存储设备设备号，仅需要i_number来确定位置
  */
 class Inode
 {
@@ -235,7 +235,7 @@ public:
 	Buf *av_back;	//下一个空闲缓存控制块的指针,将Buf插入自由队列或某一I/O请求队列
 
 	unsigned int b_wcount; // 需传送的字节数
-	unsigned char *b_addr; // 指向该缓存控制块所管理的缓冲区的首地址
+	char *b_addr; // 指向该缓存控制块所管理的缓冲区的首地址
 	unsigned int b_blkno;  // 内存逻辑块号
 
 	Buf();
@@ -251,12 +251,13 @@ private:
 	Buf SwBuf;									// 进程图像传送请求块
 	Buf devtab;									// 由于只有一个设备，所以只有一个磁盘设备表
 	Buf m_Buf[NUM_BUF];							// 缓存控制块数组
-	unsigned char Buffer[NUM_BUF][SIZE_BUFFER]; // 缓冲区数组
+	char Buffer[NUM_BUF][SIZE_BUFFER]; // 缓冲区数组
 public:
-	// 构造函数
+	//构造函数
 	BufferManager();
 	Buf* GetBlk(int blkno);
 	void Bwrite(Buf* bp);
+	Buf* Bread(int blkno);
 };
 
 class FileSystem

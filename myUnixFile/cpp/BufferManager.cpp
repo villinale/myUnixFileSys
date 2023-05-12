@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 21:22:11
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-10 22:20:51
+ * @LastEditTime: 2023-05-12 16:20:35
  * @Description: BufferManager相关操作
  */
 #include "../h/header.h"
@@ -80,6 +80,7 @@ Buf* BufferManager::GetBlk(int blkno)
     //自由队列为空
     if (this->bFreeList.av_forw == &this->bFreeList)
     {
+        //TODO:这里也没太搞懂
         //不太可能
     }
 
@@ -121,6 +122,7 @@ void BufferManager::Bwrite(Buf* bp)
     bp->av_back->av_forw = bp;
 
     //开始写操作
+    bp->b_flags |= Buf::B_WRITE;
     fstream fd;
     fd.open(DISK_PATH, ios::in | ios::out | ios::binary);
     if (!fd.is_open())
@@ -145,4 +147,57 @@ void BufferManager::Bwrite(Buf* bp)
     bp->av_back = &bFreeList;
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
+}
+
+/// <summary>
+/// 对磁盘进行读操作
+/// </summary>
+/// <param name="blkno">所要进行读取的设备块号</param>
+/// <returns></returns>
+Buf* BufferManager::Bread(int blkno)
+{
+
+    Buf* bp;
+    //根据设备号，字符块号申请缓存 
+    bp = this->GetBlk(blkno);
+    //如果在设备队列中找到所需缓存，即B_DONE已设置，就不需进行I/O操作
+    if (bp->b_flags & Buf::B_DONE)
+    {
+        return bp;
+    }
+
+    //没有找到相应缓存,I/O读操作，送入I/O请求队列
+    bp->b_flags |= Buf::B_READ;
+    bp->av_forw = this->devtab.av_forw;
+    bp->av_back = &(this->devtab);
+    bp->av_forw->av_back = bp;
+    bp->av_back->av_forw = bp;
+
+    //开始读操作
+    fstream fin;
+    fin.open(DISK_PATH, ios::in | ios::binary);
+    if (!fin.is_open())
+    {
+        cout << "无法打开一级磁盘文件" << DISK_PATH << endl;
+        throw(ENOENT);
+    }
+    //TODO:也没太搞懂为啥要读SIZE_BUFFER字节
+    fin.seekg(streampos(blkno) * streampos(SIZE_BUFFER), ios::beg);
+    fin.read(bp->b_addr, SIZE_BUFFER);
+    fin.close();
+
+    //读操作完成
+    //更新标志
+    bp->b_flags = Buf::BufFlag::B_DONE;
+
+    //从I/O请求队列取出
+    bp->av_forw->av_back = bp->av_back;
+    bp->av_back->av_forw = bp->av_forw;
+    //加入自由队列
+    bp->av_forw = bFreeList.av_forw;
+    bp->av_back = &bFreeList;
+    bp->av_forw->av_back = bp;
+    bp->av_back->av_forw = bp;
+
+    return bp;
 }
