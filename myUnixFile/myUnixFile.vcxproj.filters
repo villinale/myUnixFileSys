@@ -21,6 +21,9 @@
     <ClInclude Include="h\errno.h">
       <Filter>头文件</Filter>
     </ClInclude>
+    <ClInclude Include="h\Utility.h">
+      <Filter>头文件</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cpp\User.cpp">
@@ -39,6 +42,9 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="cpp\Directory.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="cpp\Utility.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

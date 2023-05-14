@@ -141,6 +141,7 @@
   <ItemGroup>
     <ClInclude Include="h\errno.h" />
     <ClInclude Include="h\header.h" />
+    <ClInclude Include="h\Utility.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="cpp\BufferManager.cpp" />
@@ -149,6 +150,7 @@
     <ClCompile Include="cpp\Inode.cpp" />
     <ClCompile Include="cpp\main.cpp" />
     <ClCompile Include="cpp\User.cpp" />
+    <ClCompile Include="cpp\Utility.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

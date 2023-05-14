@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 21:22:11
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-12 16:20:35
+ * @LastEditTime: 2023-05-14 14:42:28
  * @Description: BufferManager相关操作
  */
 #include "../h/header.h"
@@ -35,13 +35,13 @@ BufferManager::BufferManager()
     {
         this->m_Buf[i].b_addr = this->Buffer[i];
 
-        //前驱节点
+        // 前驱节点
         this->m_Buf[i].b_forw = (i - 1 >= 0) ? (&m_Buf[i - 1]) : (&bFreeList);
-        //后继节点
+        // 后继节点
         this->m_Buf[i].b_back = (i + 1 < NUM_BUF) ? (&m_Buf[i + 1]) : (&bFreeList);
-        //上一个空闲缓存控制块的指针
+        // 上一个空闲缓存控制块的指针
         this->m_Buf[i].av_forw = (i + 1 < NUM_BUF) ? (&m_Buf[i - 1]) : (&bFreeList);
-        //下一个空闲缓存控制块的指针
+        // 下一个空闲缓存控制块的指针
         this->m_Buf[i].av_back = (i - 1 >= 0) ? (&m_Buf[i - 1]) : (&bFreeList);
     }
 
@@ -63,11 +63,11 @@ BufferManager::BufferManager()
 /// </summary>
 /// <param name="blkno">内存逻辑块号</param>
 /// <returns>寻找到的Buf</returns>
-Buf* BufferManager::GetBlk(int blkno)
+Buf *BufferManager::GetBlk(int blkno)
 {
-    Buf* bp = NULL;
+    Buf *bp = NULL;
 
-    //在设备队列中找与blkno相同者，直接利用
+    // 在设备队列中找与blkno相同者，直接利用
     for (bp = this->devtab.b_forw; bp != &(this->devtab); bp = this->devtab.b_forw)
     {
         if (bp->b_blkno == blkno)
@@ -76,29 +76,29 @@ Buf* BufferManager::GetBlk(int blkno)
         }
     }
 
-    //在自由队列中寻找
-    //自由队列为空
+    // 在自由队列中寻找
+    // 自由队列为空
     if (this->bFreeList.av_forw == &this->bFreeList)
     {
-        //不太可能，因为每次都是设备读写之后就立即释放字符块
+        // 不太可能，因为每次都是设备读写之后就立即释放字符块
     }
 
-    //取自由队列第一个空闲块
+    // 取自由队列第一个空闲块
     bp = this->bFreeList.av_forw;
-    //从自由队列中取出
+    // 从自由队列中取出
     bp->av_back->av_forw = bp->av_forw;
     bp->av_forw->av_back = bp->av_back;
 
-    //如果该字符块是延迟写，将其异步写到磁盘上
+    // 如果该字符块是延迟写，将其异步写到磁盘上
     if (bp->b_flags & Buf::B_DELWRI)
         this->Bwrite(bp);
 
     bp->b_flags = Buf::B_NONE;
 
-    //从原设备队列中抽出
+    // 从原设备队列中抽出
     bp->b_back->b_forw = bp->b_forw;
     bp->b_forw->b_back = bp->b_back;
-    //加入新的设备队列
+    // 加入新的设备队列
     bp->b_forw = this->devtab.b_forw;
     bp->b_back = &(this->devtab);
     this->devtab.b_forw->b_back = bp;
@@ -112,35 +112,36 @@ Buf* BufferManager::GetBlk(int blkno)
 /// 写入的起始位置为盘块的起始地址写入字节数为512才会调用,所以写入大小为SIZE_BUFFER
 /// </summary>
 /// <param name="bp"></param>
-void BufferManager::Bwrite(Buf* bp)
+void BufferManager::Bwrite(Buf *bp)
 {
-    //I/O写操作，送入该设备的I/O请求队列
+    // I/O写操作，送入该设备的I/O请求队列
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 
-    //开始写操作
+    // 开始写操作
     bp->b_flags |= Buf::B_WRITE;
     fstream fd;
     fd.open(DISK_PATH, ios::in | ios::out | ios::binary);
-    if (!fd.is_open()) {
+    if (!fd.is_open())
+    {
         cout << "无法打开一级磁盘文件myDisk.img" << endl;
         throw(ENOENT);
     }
-    //TODO：这里可能要修改
-    //这里没太搞懂
+    // TODO：这里可能要修改
+    // 这里没太搞懂
     fd.seekp(streampos(bp->b_blkno) * streampos(SIZE_BUFFER), ios::beg);
-    fd.write((const char*)bp->b_addr, SIZE_BUFFER);
+    fd.write((const char *)bp->b_addr, SIZE_BUFFER);
     fd.close();
-    //写操作完成
-    
-    //更新标志
+    // 写操作完成
+
+    // 更新标志
     bp->b_flags = Buf::BufFlag::B_DONE;
-    //从I/O请求队列取出
+    // 从I/O请求队列取出
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
-    //加入自由队列
+    // 加入自由队列
     bp->av_forw = bFreeList.av_forw;
     bp->av_back = &bFreeList;
     bp->av_forw->av_back = bp;
@@ -150,51 +151,74 @@ void BufferManager::Bwrite(Buf* bp)
 /// <summary>
 /// 对磁盘进行读操作
 /// </summary>
-/// <param name="blkno">所要进行读取的设备块号</param>
+/// <param name="blkno">所要进行读取的物理设备块号</param>
 /// <returns></returns>
-Buf* BufferManager::Bread(int blkno)
+Buf *BufferManager::Bread(int blkno)
 {
-
-    Buf* bp;
-    //根据设备号，字符块号申请缓存 
+    Buf *bp;
+    // 根据设备号，字符块号申请缓存
     bp = this->GetBlk(blkno);
-    //如果在设备队列中找到所需缓存，即B_DONE已设置，就不需进行I/O操作
+    // 如果在设备队列中找到所需缓存，即B_DONE已设置，就不需进行I/O操作
     if (bp->b_flags & Buf::B_DONE)
     {
         return bp;
     }
 
-    //没有找到相应缓存,I/O读操作，送入I/O请求队列
+    // 没有找到相应缓存,I/O读操作，送入I/O请求队列
     bp->b_flags |= Buf::B_READ;
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 
-    //开始读操作
+    // 开始读操作
     fstream fin;
     fin.open(DISK_PATH, ios::in | ios::binary);
-    if (!fin.is_open()) {
+    if (!fin.is_open())
+    {
         cout << "无法打开一级磁盘文件myDisk.img" << endl;
         throw(ENOENT);
     }
-    //TODO:也没太搞懂为啥要读SIZE_BUFFER字节
+    // TODO:也没太搞懂为啥要读SIZE_BUFFER字节
     fin.seekg(streampos(blkno) * streampos(SIZE_BUFFER), ios::beg);
     fin.read(bp->b_addr, SIZE_BUFFER);
     fin.close();
 
-    //读操作完成
-    //更新标志
+    // 读操作完成
+    // 更新标志
     bp->b_flags = Buf::BufFlag::B_DONE;
 
-    //从I/O请求队列取出
+    // 从I/O请求队列取出
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
-    //加入自由队列
+    // 加入自由队列
     bp->av_forw = bFreeList.av_forw;
     bp->av_back = &bFreeList;
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 
     return bp;
+}
+
+/// @brief 对磁盘进行读操作,但是设置了盘块号、偏移量和读取大小
+/// @param buf      读取的数据存放的位置
+/// @param blkno    所要进行读取的设备块号
+/// @param offset   读取的起始位置
+/// @param size     读取的大小
+void BufferManager::Bread(char *buf, int blkno, int offset, int size)
+{
+    if (offset + size > SIZE_BUFFER)
+    {
+        cout << "读取的大小超过了一个盘块的大小" << endl;
+        throw(EOVERFLOW);
+    }
+    if (buf == nullptr)
+    {
+        cout << "读取的缓冲区为空" << endl;
+        throw(EINVAL);
+    }
+    Buf *bp;
+    bp = this->Bread(blkno);
+    memcpy(buf, bp->b_addr + offset, size);
+    return;
 }

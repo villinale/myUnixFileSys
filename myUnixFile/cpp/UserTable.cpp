@@ -7,7 +7,7 @@
  */
 #include "../h/header.h"
 
-User::User()
+UserTable::UserTable()
 {
 	for (int i = 0; i < NUM_USER; i++)
 	{
@@ -23,7 +23,7 @@ User::User()
 /// <param name="name">所要添加的用户名</param>
 /// <param name="password">所要添加的用户密码</param>
 /// <param name="givengid">所要添加的用户gid</param>
-void User::AddUser(const short id, const char *name, const char *password, const short givengid)
+void UserTable::AddUser(const short id, const char *name, const char *password, const short givengid)
 {
 	if (id != ROOT_ID)
 	{
@@ -55,7 +55,7 @@ void User::AddUser(const short id, const char *name, const char *password, const
 /// </summary>
 /// <param name="id">进行操作的用户id</param>
 /// <param name="name">所要删除的用户名</param>
-void User::DeleteUser(const short id, const char *name)
+void UserTable::DeleteUser(const short id, const char *name)
 {
 	if (id != ROOT_ID)
 	{
@@ -89,4 +89,15 @@ void User::DeleteUser(const short id, const char *name)
 	if (isfind == false)
 		cout << "删除失败！无该用户存在" << endl;
 	return;
+}
+
+/// @brief 通过id寻找gid
+/// @param id 用户id
+/// @return 返回用户gid，没找到返回-1
+unsigned short UserTable::GetGId(const unsigned short id)
+{
+	for (int i = 0; i < NUM_USER; i++)
+		if (this->u_id[i] == id)
+			return this->u_gid[i];
+	return -1;
 }

@@ -29,6 +29,8 @@ static const int NUM_I_ADDR = 10;
 static const int SIZE_DISKINODE = 64;
 // DiskInode开始的位置（以block为单位）
 static const unsigned int POSITION_DISKINODE = 2;
+// 每个Block中DiskInode的数量
+static const int NUM_INODE_PER_BLOCK = SIZE_BLOCK / SIZE_DISKINODE;
 
 // Block数量
 static const int NUM_BLOCK = 1000000;
@@ -71,19 +73,21 @@ vector<string> stringSplit(const string &strIn, char delim);
  * 用户User类的定义
  * 由于有多个用户，但是没有实现多用户多进程文件读写，还是一种“伪并发”
  */
-class User
+class UserTable
 {
 public:
-	short u_id[NUM_USER];						  // 用户id
-	short u_gid[NUM_USER];						  // 用户所在组id
+	unsigned short u_id[NUM_USER];				  // 用户id
+	unsigned short u_gid[NUM_USER];				  // 用户所在组id
 	char u_name[NUM_USER][NUM_USER_NAME];		  // 用户名
 	char u_password[NUM_USER][NUM_USER_PASSWORD]; // 用户密码
-	User();
+	UserTable();
 
 	// 添加用户
 	void AddUser(const short id, const char *name, const char *password, const short givengid);
 	// 删除用户
 	void DeleteUser(const short id, const char *name);
+
+	unsigned short GetGId(const unsigned short id);
 };
 
 /*
@@ -150,22 +154,24 @@ public:
 	};
 
 public:
-	unsigned short i_number; /* 在inode区中的编号 */
-	unsigned short i_uid;	 /* 文件所有者的用户标识数 */
-	unsigned short i_gid;	 /* 文件所有者的组标识数 */
+	unsigned short i_number; // 在inode区中的编号
+	unsigned short i_uid;	 // 文件所有者的用户标识数
+	unsigned short i_gid;	 // 文件所有者的组标识数
 
-	unsigned short i_mode; /* 文件权限，定义见enum INodeMode */
+	unsigned short i_mode; // 文件权限，定义见enum INodeMode
 
-	unsigned short i_count; /* 引用计数 */
-	unsigned short i_nlink; /* 文件联结计数，即该文件在目录树中不同路径名的数量 */
+	unsigned short i_count; // 引用计数
+	unsigned short i_nlink; // 文件联结计数，即该文件在目录树中不同路径名的数量
 
-	unsigned int i_size;			 /* 文件大小，字节为单位 */
-	unsigned int i_addr[NUM_I_ADDR]; /* 用于文件逻辑块号和物理块号转换的基本索引表 */
+	unsigned int i_size;			 // 文件大小，字节为单位
+	unsigned int i_addr[NUM_I_ADDR]; // 指向数据块区，用于文件逻辑块号和物理块号转换的基本索引表
 
 	unsigned int i_atime;
 	unsigned int i_mtime;
 
 	int Bmap(int lbn);
+
+	void ICopy(Buf *bp, int inumber);
 };
 
 /*
@@ -186,10 +192,13 @@ public:
  * 该结构实现了树形带交叉勾连的目录结构
  * 一个Directory类就一个BLOCK大小
  */
-struct Directory
+class Directory
 {
+public:
 	unsigned int d_inodenumber[NUM_SUB_DIR];	 // 子目录Inode号
 	char d_filename[NUM_SUB_DIR][NUM_FILE_NAME]; // 子目录文件名
+
+	Directory();
 };
 
 /*
@@ -241,18 +250,25 @@ private:
 public:
 	// 构造函数
 	BufferManager();
+
 	Buf *GetBlk(int blkno);
+
 	void Bwrite(Buf *bp);
+
+	//
 	Buf *Bread(int blkno);
+
+	void Bread(char *buf, int blkno, int offset, int size);
 };
 
-// 相当于FileSystem和FileManager的合体
+// 相当于FileSystem、FileManager、InodeTable的合体
 class FileSystem
 {
 protected:
 	short curId;				  // 目前使用的userID
 	BufferManager *bufManager;	  // 缓存控制块管理类
 	SuperBlock *spb;			  // 超级块
+	UserTable *userTable;		  // 用户表
 	File openFileTable[NUM_FILE]; // 打开文件表，由于只有一个进程所以没有进程打开文件表
 	Inode inodeTable[NUM_INODE];  // 内存Inode表
 	Inode *curDirInode;			  // 指向当前目录的Inode指针
@@ -261,7 +277,22 @@ private:
 	// 根据path获取Inode
 	Inode *NameI(string path);
 
+	int IsLoaded(int inumber);
+
+	Inode *IGet(int inumber);
+
+	int AddFileinFileTable(Inode *pInode);
+
+	int Access(Inode *pInode, unsigned int mode);
+
 public:
+	enum FileMode
+	{
+		READ = 0x1,	 // 读
+		WRITE = 0x2, // 写
+		EXC = 0x4	 // 执行，相当于打开文件
+	};
+
 	FileSystem();
 
 	// 初始化文件系统

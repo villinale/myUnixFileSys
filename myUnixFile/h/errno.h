@@ -1,9 +1,13 @@
 #pragma once
 
-#define EPERM 1   // Operation not permitted 操作不允许
-#define ENOENT 2  // No such file or directory 没有这样的文件或目录
-#define ENOSPC 28 // No space left on device 设备上没有空间
-#define EUSERS 87 // Too many users 用户太多
+// 其实这些错误码在C++中本身就已经被定义了
+#define EPERM 1      // Operation not permitted 操作不允许
+#define ENOENT 2     // No such file or directory 没有这样的文件或目录
+#define EINVAL 22    // Invalid argument 无效的参数
+#define ENFILE 23    // File table overflow 打开太多的文件系统
+#define ENOSPC 28    // No space left on device 设备上没有空间
+#define EOVERFLOW 75 // Value too large for defined data type 值太大,对于定义数据类型
+#define EUSERS 87    // Too many users 用户太多
 
 /*
 #define	ESRCH	3	//No such process 没有这样的过程
@@ -25,8 +29,6 @@
 #define	ENODEV	19	//No such device 设备不存在
 #define	ENOTDIR	20	//Not a directory 不是一个目录
 #define	EISDIR	21	//Is a directory 是一个目录
-#define	EINVAL	22	//Invalid argument 无效的参数
-#define	ENFILE	23	//File table overflow 打开太多的文件系统
 #define	EMFILE	24	//Too many open files 打开的文件过多
 #define	ENOTTY	25	//Not a tty device 不是tty设备
 #define	ETXTBSY	26	//Text file busy 文本文件忙
@@ -77,7 +79,6 @@
 #define	EMULTIHOP	72	//Multihop attempted 多跳尝试
 #define	EDOTDOT	73	//RFS specific error RFS特定的错误
 #define	EBADMSG	74	//Not a data message 非数据消息
-#define	EOVERFLOW	75	//Value too large for defined data type 值太大,对于定义数据类型
 #define	ENOTUNIQ	76	//Name not unique on network 名不是唯一的网络
 #define	EBADFD	77	//File descriptor in bad state 文件描述符在坏状态
 #define	EREMCHG	78	//Remote address changed 远程地址改变了
