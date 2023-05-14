@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 21:22:11
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-14 14:42:28
+ * @LastEditTime: 2023-05-14 18:51:43
  * @Description: BufferManager相关操作
  */
 #include "../h/header.h"
@@ -108,10 +108,8 @@ Buf *BufferManager::GetBlk(int blkno)
     return bp;
 }
 
-/// <summary>
-/// 写入的起始位置为盘块的起始地址写入字节数为512才会调用,所以写入大小为SIZE_BUFFER
-/// </summary>
-/// <param name="bp"></param>
+/// @brief 将缓存块bp写到磁盘上
+/// @param bp 缓存块
 void BufferManager::Bwrite(Buf *bp)
 {
     // I/O写操作，送入该设备的I/O请求队列
@@ -148,11 +146,9 @@ void BufferManager::Bwrite(Buf *bp)
     bp->av_back->av_forw = bp;
 }
 
-/// <summary>
-/// 对磁盘进行读操作
-/// </summary>
-/// <param name="blkno">所要进行读取的物理设备块号</param>
-/// <returns></returns>
+/// @brief 根据物理设备块号读取缓存
+/// @param blkno 所要进行读取的物理设备块号
+/// @return  返回读取到的缓存块
 Buf *BufferManager::Bread(int blkno)
 {
     Buf *bp;
@@ -178,6 +174,7 @@ Buf *BufferManager::Bread(int blkno)
     {
         cout << "无法打开一级磁盘文件myDisk.img" << endl;
         throw(ENOENT);
+        return NULL;
     }
     // TODO:也没太搞懂为啥要读SIZE_BUFFER字节
     fin.seekg(streampos(blkno) * streampos(SIZE_BUFFER), ios::beg);

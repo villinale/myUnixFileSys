@@ -3,7 +3,7 @@
 
 void test()
 {
-	cout << "User:" << sizeof(User) << endl;
+	cout << "User:" << sizeof(UserTable) << endl;
 	cout << "DiskInode:" << sizeof(DiskInode) << endl;
 	cout << "Inode:" << sizeof(Inode) << endl;
 	cout << "SuperBlock:" << sizeof(SuperBlock) << endl;
@@ -31,6 +31,6 @@ void test()
 int main()
 {
 	test();
-
+	
 	return 0;
 }

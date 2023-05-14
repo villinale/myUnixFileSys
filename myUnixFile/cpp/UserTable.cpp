@@ -40,13 +40,13 @@ void UserTable::AddUser(const short id, const char *name, const char *password, 
 			strcpy(this->u_password[i], password);
 			this->u_id[i] = i;
 			this->u_gid[i] = givengid;
-			cout << "创建成功！" << endl;
+			cout << "创建成功!" << endl;
 			throw(EUSERS);
 			return;
 		}
 	}
 
-	cout << "创建失败！用户已满" << endl;
+	cout << "创建失败!用户已满" << endl;
 	return;
 }
 
@@ -81,13 +81,13 @@ void UserTable::DeleteUser(const short id, const char *name)
 			this->u_gid[i] = -1;
 			strcpy(this->u_name[i], "");
 			strcpy(this->u_password[i], "");
-			cout << "删除成功！" << endl;
+			cout << "删除成功!" << endl;
 			return;
 		}
 	}
 
 	if (isfind == false)
-		cout << "删除失败！无该用户存在" << endl;
+		cout << "删除失败!无该用户存在" << endl;
 	return;
 }
 

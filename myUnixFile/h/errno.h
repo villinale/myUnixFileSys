@@ -1,13 +1,16 @@
 #pragma once
 
 // 其实这些错误码在C++中本身就已经被定义了
-#define EPERM 1      // Operation not permitted 操作不允许
-#define ENOENT 2     // No such file or directory 没有这样的文件或目录
-#define EINVAL 22    // Invalid argument 无效的参数
-#define ENFILE 23    // File table overflow 打开太多的文件系统
-#define ENOSPC 28    // No space left on device 设备上没有空间
-#define EOVERFLOW 75 // Value too large for defined data type 值太大,对于定义数据类型
-#define EUSERS 87    // Too many users 用户太多
+#define EPERM 1         // Operation not permitted 操作不允许
+#define ENOENT 2        // No such file or directory 没有这样的文件或目录
+#define EEXIST 17       // File exists 文件存在
+#define ENOTDIR 20      // Not a directory 不是一个目录
+#define EINVAL 22       // Invalid argument 无效的参数
+#define ENFILE 23       // File table overflow 打开太多的文件系统
+#define ENOSPC 28       // No space left on device 设备上没有空间
+#define ENAMETOOLONG 36 // Filename too long 文件名太长
+#define EOVERFLOW 75    // Value too large for defined data type 值太大,对于定义数据类型
+#define EUSERS 87       // Too many users 用户太多
 
 /*
 #define	ESRCH	3	//No such process 没有这样的过程
@@ -24,10 +27,8 @@
 #define	EFAULT	14	//Bad address 错误的地址
 #define	ENOTBLK	15	//Block device required 块设备请求
 #define	EBUSY	16	//Device or resource busy 设备或资源忙
-#define	EEXIST	17	//File exists 文件存在
 #define	EXDEV	18	//Cross-device link 无效的交叉链接
 #define	ENODEV	19	//No such device 设备不存在
-#define	ENOTDIR	20	//Not a directory 不是一个目录
 #define	EISDIR	21	//Is a directory 是一个目录
 #define	EMFILE	24	//Too many open files 打开的文件过多
 #define	ENOTTY	25	//Not a tty device 不是tty设备
@@ -40,7 +41,6 @@
 #define	EDOM	33	//Math argument out of domain 数值结果超出范围
 #define	ERANGE	34	//Math result not representable 数值结果不具代表性
 #define	EDEADLK	35	//Resource deadlock would occur 资源死锁错误
-#define	ENAMETOOLONG	36	//Filename too long 文件名太长
 #define	ENOLCK	37	//No record locks available 没有可用锁
 #define	ENOSYS	38	//Function not implemented 功能没有实现
 #define	ENOTEMPTY	39	//Directory not empty 目录不空

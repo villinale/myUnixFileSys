@@ -129,79 +129,6 @@ public:
 };
 
 /*
- * 内存索引节点INode类的定义
- * 系统中每一个打开的文件、当前访问目录、挂载的子文件系统都对应唯一的内存inode。
- * 由于只有一个设备，所以不需要存储设备设备号，仅需要i_number来确定位置
- */
-class Inode
-{
-public:
-	/* i_mode中标志位 */
-	enum INodeMode
-	{
-		IDIR = 0x4000,	// 文件类型：目录文件
-		IFILE = 0x2000, // 文件类型：普通小文件
-		ILARG = 0x1000, // 文件类型：大文件
-		OWNER_R = 0x400,
-		OWNER_W = 0x200,
-		OWNER_X = 0x100,
-		GROUP_R = 0x40,
-		GROUP_W = 0x20,
-		GROUP_X = 0x10,
-		OTHER_R = 0x4,
-		OTHER_W = 0x2,
-		OTHER_X = 0x1,
-	};
-
-public:
-	unsigned short i_number; // 在inode区中的编号
-	unsigned short i_uid;	 // 文件所有者的用户标识数
-	unsigned short i_gid;	 // 文件所有者的组标识数
-
-	unsigned short i_mode; // 文件权限，定义见enum INodeMode
-
-	unsigned short i_count; // 引用计数
-	unsigned short i_nlink; // 文件联结计数，即该文件在目录树中不同路径名的数量
-
-	unsigned int i_size;			 // 文件大小，字节为单位
-	unsigned int i_addr[NUM_I_ADDR]; // 指向数据块区，用于文件逻辑块号和物理块号转换的基本索引表
-
-	unsigned int i_atime;
-	unsigned int i_mtime;
-
-	int Bmap(int lbn);
-
-	void ICopy(Buf *bp, int inumber);
-};
-
-/*
- * 打开文件控制块File类。
- * 文件所有者的用户标识数、文件读写位置等等。
- */
-class File
-{
-public:
-	Inode *f_inode;		   /* 指向打开文件的内存Inode指针 */
-	unsigned int f_offset; /* 文件读写位置指针 */
-	unsigned short f_uid;  /* 文件所有者的用户标识数 */
-	unsigned short f_gid;  /* 文件所有者的组标识数 */
-};
-
-/*
- * 目录Directory类
- * 该结构实现了树形带交叉勾连的目录结构
- * 一个Directory类就一个BLOCK大小
- */
-class Directory
-{
-public:
-	unsigned int d_inodenumber[NUM_SUB_DIR];	 // 子目录Inode号
-	char d_filename[NUM_SUB_DIR][NUM_FILE_NAME]; // 子目录文件名
-
-	Directory();
-};
-
-/*
  * 缓存控制块buf定义
  * 记录了相应缓存的使用情况等信息
  */
@@ -237,6 +164,90 @@ public:
 };
 
 /*
+ * 内存索引节点INode类的定义
+ * 系统中每一个打开的文件、当前访问目录、挂载的子文件系统都对应唯一的内存inode。
+ * 由于只有一个设备，所以不需要存储设备设备号，仅需要i_number来确定位置
+ */
+class Inode
+{
+public:
+	/* i_mode中标志位 */
+	enum INodeMode
+	{
+		IDIR = 0x4000,	// 文件类型：目录文件
+		IFILE = 0x2000, // 文件类型：普通小文件
+		ILARG = 0x1000, // 文件类型：大文件
+		OWNER_R = 0x400,
+		OWNER_W = 0x200,
+		OWNER_X = 0x100,
+		GROUP_R = 0x40,
+		GROUP_W = 0x20,
+		GROUP_X = 0x10,
+		OTHER_R = 0x4,
+		OTHER_W = 0x2,
+		OTHER_X = 0x1,
+	};
+
+public:
+	unsigned short i_uid; // 文件所有者的用户标识数
+	unsigned short i_gid; // 文件所有者的组标识数
+
+	unsigned short i_mode; // 文件权限，定义见enum INodeMode
+
+	unsigned short i_count; // 引用计数
+	unsigned short i_nlink; // 文件联结计数，即该文件在目录树中不同路径名的数量
+
+	unsigned int i_size;			 // 文件大小，字节为单位
+	unsigned int i_addr[NUM_I_ADDR]; // 指向数据块区，用于文件逻辑块号和物理块号转换的基本索引表
+
+	unsigned int i_atime;
+	unsigned int i_mtime;
+
+	unsigned short i_number; // 在inode区中的编号,放到最后以便于将内存Inode转换为外存Inode
+
+	// 将逻辑块号lbn映射到物理盘块号phyBlkno
+	int Bmap(int lbn);
+
+	// 根据缓存内容bp将外存Inode读取数据到内存Inode
+	void ICopy(Buf *bp, int inumber);
+
+	// 根据规则给内存Inode赋予文件权限，没有用到
+	unsigned short AssignMode(unsigned short id, unsigned short gid);
+
+	// 清空Inode内容
+	void Clean();
+
+	void WriteI();
+};
+
+/*
+ * 打开文件控制块File类。
+ * 文件所有者的用户标识数、文件读写位置等等。
+ */
+class File
+{
+public:
+	Inode *f_inode;		   /* 指向打开文件的内存Inode指针 */
+	unsigned int f_offset; /* 文件读写位置指针 */
+	unsigned short f_uid;  /* 文件所有者的用户标识数 */
+	unsigned short f_gid;  /* 文件所有者的组标识数 */
+};
+
+/*
+ * 目录Directory类
+ * 该结构实现了树形带交叉勾连的目录结构
+ * 一个Directory类就一个BLOCK大小
+ */
+class Directory
+{
+public:
+	unsigned int d_inodenumber[NUM_SUB_DIR];	 // 子目录Inode号
+	char d_filename[NUM_SUB_DIR][NUM_FILE_NAME]; // 子目录文件名
+
+	Directory();
+};
+
+/*
  * 缓存控制块管理类BufferManager定义
  */
 class BufferManager
@@ -251,13 +262,16 @@ public:
 	// 构造函数
 	BufferManager();
 
+	// 根据物理设备块号读取缓存
 	Buf *GetBlk(int blkno);
 
+	// 将缓存块bp写到磁盘上
 	void Bwrite(Buf *bp);
 
-	//
+	// 根据物理设备块号读取缓存
 	Buf *Bread(int blkno);
 
+	// 暂做备用
 	void Bread(char *buf, int blkno, int offset, int size);
 };
 
@@ -265,25 +279,35 @@ public:
 class FileSystem
 {
 protected:
-	short curId;				  // 目前使用的userID
-	BufferManager *bufManager;	  // 缓存控制块管理类
-	SuperBlock *spb;			  // 超级块
-	UserTable *userTable;		  // 用户表
-	File openFileTable[NUM_FILE]; // 打开文件表，由于只有一个进程所以没有进程打开文件表
-	Inode inodeTable[NUM_INODE];  // 内存Inode表
-	Inode *curDirInode;			  // 指向当前目录的Inode指针
-	Inode *rootDirInode;		  // 根目录内存Inode
+	short curId;					  // 目前使用的userID
+	static BufferManager *bufManager; // 缓存控制块管理类
+	SuperBlock *spb;				  // 超级块
+	UserTable *userTable;			  // 用户表
+	File openFileTable[NUM_FILE];	  // 打开文件表，由于只有一个进程所以没有进程打开文件表
+	Inode inodeTable[NUM_INODE];	  // 内存Inode表
+	Inode *curDirInode;				  // 指向当前目录的Inode指针
+	Inode *rootDirInode;			  // 根目录内存Inode
 private:
 	// 根据path获取Inode
 	Inode *NameI(string path);
 
+	// 判断指定外存Inode是否已经加载到内存中
 	int IsLoaded(int inumber);
 
+	// 从外存读取指定外存Inode到内存中
 	Inode *IGet(int inumber);
 
+	// 在openFileTable中添加一个文件
 	int AddFileinFileTable(Inode *pInode);
 
+	// 查找pInode是否有给定mode的权限
 	int Access(Inode *pInode, unsigned int mode);
+
+	// 根据文件路径查找对应的Inode
+	Inode *NameI();
+
+	// 分配一个空闲的外存Inode
+	Inode *IAlloc();
 
 public:
 	enum FileMode
@@ -295,6 +319,11 @@ public:
 
 	FileSystem();
 
+	static BufferManager *GetBufferManager()
+	{
+		return this->bufManager;
+	}
+
 	// 初始化文件系统
 	void init();
 
@@ -302,12 +331,11 @@ public:
 	short getCurUserID();
 
 	// 根据path打开文件或文件夹
-	int Open(string path);
+	int fopen(string path);
 
 	// 根据fd关闭文件
-	int Close(int fd);
+	// int Close(int fd);
 
-	Inode *NameI();
-
-	Buf *Alloc(short dev);
+	// 创建文件
+	int fcreate(string path);
 };

@@ -47,3 +47,22 @@ DiskInode *char2DiskInode(char *ch)
         std::cerr << "Exception caught: " << e.what() << std::endl;
     }
 }
+
+/// @brief 将字符串按照分隔符分割
+/// @param strIn  要分割的字符串
+/// @param delim  分隔符
+/// @return  vector<string> 分割后的字符串数组
+vector<string> stringSplit(const string &strIn, char delim)
+{
+    char *str = const_cast<char *>(strIn.c_str());
+    string s;
+    s.append(1, delim);
+    vector<string> elems;
+    char *splitted = strtok(str, s.c_str());
+    while (splitted != NULL)
+    {
+        elems.push_back(string(splitted));
+        splitted = strtok(NULL, s.c_str());
+    }
+    return elems;
+}

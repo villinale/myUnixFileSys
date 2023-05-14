@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-14 14:56:22
+ * @LastEditTime: 2023-05-14 20:54:07
  * @Description: Inode类相关操作
  */
 
@@ -44,6 +44,9 @@ int Inode::Bmap(int lbn)
     return phyBlkno;
 }
 
+/// @brief     根据缓存内容bp将外存Inode读取数据到内存Inode
+/// @param bp  缓冲区指针
+/// @param inumber  外存Inode编号
 void Inode::ICopy(Buf *bp, int inumber)
 {
     // 从外存Inode读取数据到内存Inode
@@ -61,4 +64,61 @@ void Inode::ICopy(Buf *bp, int inumber)
     this->i_count = 1;
     for (int i = 0; i < NUM_I_ADDR; i++)
         this->i_addr[i] = dp->d_addr[i];
+}
+
+/// @brief 根据规则给内存Inode赋予文件权限
+/// @return unsigned short 返回文件权限
+unsigned short Inode::AssignMode(unsigned short id, unsigned short gid)
+{
+    unsigned short mode = 0;
+
+    if (id == this->i_uid)
+    {
+        mode |= (this->i_mode >> 6);
+    }
+    else if (gid == this->i_gid)
+    {
+        mode |= (this->i_mode >> 3);
+    }
+    else
+    {
+        mode |= this->i_mode;
+    }
+
+    return mode;
+}
+
+/// @brief 清空Inode内容
+/// 这里有意思的是源码，有很多东西并没有被清除，比如i_mode，i_count等等
+/// TODO:其实并没有看懂
+void Inode::Clean()
+{
+    this->i_mode = 0;
+    this->i_count = 0;
+    this->i_nlink = 0;
+    this->i_number = 0;
+    this->i_uid = -1;
+    this->i_gid = -1;
+    this->i_size = 0;
+    for (int i = 0; i < 10; i++)
+    {
+        this->i_addr[i] = 0;
+    }
+}
+
+/// @brief 将内存Inode更新到外存中
+void Inode::WriteI()
+{
+    Buf *bp;
+
+    BufferManager *bufMgr = FileSystem::GetBufferManager();
+
+    // 从磁盘读取磁盘Inode
+    bp = bufMgr->Bread(POSITION_DISKINODE + this->i_number / NUM_INODE_PER_BLOCK);
+    int offset = (this->i_number % NUM_INODE_PER_BLOCK) * sizeof(DiskInode);
+
+    DiskInode *dp;
+    memcpy_s(dp, SIZE_DISKINODE, this, SIZE_DISKINODE);
+    memcpy(bp->b_addr + offset, dp, SIZE_DISKINODE);
+    bufMgr->Bwrite(bp);
 }
