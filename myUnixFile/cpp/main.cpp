@@ -1,6 +1,8 @@
 #include "../h/header.h"
 #include "../h/Utility.h"
 
+FileSystem fs;
+
 void test()
 {
 	cout << "User:" << sizeof(UserTable) << endl;

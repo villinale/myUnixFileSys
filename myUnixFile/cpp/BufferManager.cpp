@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 21:22:11
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-14 18:51:43
+ * @LastEditTime: 2023-05-15 16:18:59
  * @Description: BufferManager相关操作
  */
 #include "../h/header.h"
@@ -58,11 +58,9 @@ BufferManager::BufferManager()
     this->devtab.av_back = &devtab;
 }
 
-/// <summary>
-/// 申请缓存
-/// </summary>
-/// <param name="blkno">内存逻辑块号</param>
-/// <returns>寻找到的Buf</returns>
+/// @brief 申请缓存，而且只会在Bread中调用，不在Bwrite中调用，因为每次写都是要先读，再对读后获得的缓存进行修改，非常精妙！！！
+/// @param blkno 逻辑块号
+/// @return 寻找到的Buf
 Buf *BufferManager::GetBlk(int blkno)
 {
     Buf *bp = NULL;
@@ -108,6 +106,51 @@ Buf *BufferManager::GetBlk(int blkno)
     return bp;
 }
 
+/// @brief 将字符写在对应盘块中，但是会标记延迟写
+/// @param buf 字符
+/// @param start_addr 起始地址
+/// @param size 字符数
+void BufferManager::bwrite(const char *buf, unsigned int start_addr, unsigned int size)
+{
+    if (start_addr + size > SIZE_BLOCK * NUM_BLOCK_ALL)
+    {
+        cout << "盘块写入地址错误" << endl;
+        throw(EFAULT);
+        return;
+    }
+
+    unsigned int pos = 0;
+    unsigned int start_blkno = start_addr / SIZE_BUFFER;
+    unsigned int end_blkno = (start_addr + size - 1) / SIZE_BUFFER;
+    // 从start_blkno到end_blkno的所有块都要写
+    for (unsigned int blkno = start_blkno; blkno <= end_blkno; blkno++)
+    {
+        Buf *bp = Bread(blkno);
+        // 只有一个块
+        if (blkno == start_blkno && blkno == end_blkno)
+        {
+            memcpy_s(bp->b_addr + start_addr % SIZE_BUFFER, size, buf + pos, size);
+            pos += size;
+        }
+        else if (blkno == start_blkno) // 第一个块
+        {
+            memcpy_s(bp->b_addr + start_addr % SIZE_BUFFER, (SIZE_BUFFER - 1) - (start_addr % SIZE_BUFFER) + 1, buf + pos, (SIZE_BUFFER - 1) - (start_addr % SIZE_BUFFER) + 1);
+            pos += SIZE_BUFFER - (start_addr % SIZE_BUFFER);
+        }
+        else if (blkno == end_blkno) // 最后一个块
+        {
+            memcpy_s(bp->b_addr, (start_addr + size - 1) % SIZE_BUFFER - 0 + 1, buf + pos, (start_addr + size - 1) % SIZE_BUFFER - 0 + 1);
+            pos += (start_addr + size - 1) % SIZE_BUFFER - 0 + 1;
+        }
+        else
+        {
+            memcpy_s(bp->b_addr, SIZE_BUFFER, buf + pos, SIZE_BUFFER);
+            pos += SIZE_BUFFER;
+        }
+        bp->b_flags |= Buf::BufFlag::B_DELWRI; // 标记为异步写
+    }
+}
+
 /// @brief 将缓存块bp写到磁盘上
 /// @param bp 缓存块
 void BufferManager::Bwrite(Buf *bp)
@@ -128,7 +171,8 @@ void BufferManager::Bwrite(Buf *bp)
         throw(ENOENT);
     }
     // TODO：这里可能要修改
-    // 这里没太搞懂
+    // 这里没太搞懂，在上层进行写操作的时候，
+    // 是先读盘块，再写盘块相关内容，只修改缓存中内容，所以是SIZE_BUFFER地写
     fd.seekp(streampos(bp->b_blkno) * streampos(SIZE_BUFFER), ios::beg);
     fd.write((const char *)bp->b_addr, SIZE_BUFFER);
     fd.close();

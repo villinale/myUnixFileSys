@@ -1,4 +1,7 @@
 #pragma once
+#ifndef HEADER_H
+#define HEADER_H
+
 #define _CRT_SECURE_NO_WARNINGS
 
 #define ROOT_ID 0
@@ -15,11 +18,17 @@ using namespace std;
 static const string DISK_PATH = "myDisk.img";
 // 文件逻辑块大小: 512字节
 static const int SIZE_BLOCK = 512;
+// 文件卷大小
+static const int SIZE_DISK = SIZE_BLOCK * 512;
+// 文件所有Block数量
+static const int NUM_BLOCK_ALL = SIZE_DISK / SIZE_BLOCK;
 
 // SuperBlock中能够管理的最大空闲Inode与空闲数据盘块的数量
-static const int NUM_FREE_BLOCK_GROUP = 100;
+static const int NUM_FREE_INODE = 100;
 // SuperBlock开始的位置（以block为单位）
 static const unsigned int POSITION_SUPERBLOCK = 0;
+// SuperBlock一组空闲数据盘块的数量
+static const int NUM_FREE_BLOCK_GROUP = 100;
 
 // DiskInode数量
 static const int NUM_DISKINODE = 256;
@@ -32,9 +41,9 @@ static const unsigned int POSITION_DISKINODE = 2;
 // 每个Block中DiskInode的数量
 static const int NUM_INODE_PER_BLOCK = SIZE_BLOCK / SIZE_DISKINODE;
 
-// Block数量
-static const int NUM_BLOCK = 1000000;
-// Block开始的位置（以block为单位）
+// 数据块Block数量
+static const int NUM_BLOCK = NUM_BLOCK_ALL - POSITION_DISKINODE - NUM_DISKINODE / NUM_INODE_PER_BLOCK;
+// 数据块Block开始的位置（以block为单位）
 static const unsigned int POSITION_BLOCK = int(POSITION_DISKINODE + SIZE_DISKINODE * NUM_DISKINODE / SIZE_BLOCK);
 
 // 规定：User内容最多占一个BLOCK，即:NUM_USER*(NUM_USER_NAME+NUM_USER_PASSWORD)<=BLOCK_SIZE
@@ -96,13 +105,17 @@ public:
 class SuperBlock
 {
 public:
-	unsigned int s_isize;						/* Inode区占用的盘块数 */
-	unsigned int s_ninode;						/* 直接管理的空闲外存Inode数量 */
-	unsigned int s_inode[NUM_FREE_BLOCK_GROUP]; /* 直接管理的空闲外存Inode索引表 */
+	unsigned int s_isize; /* Inode区占用的盘块数 */
+	unsigned int s_fsize; /* 盘块总数 */
 
-	unsigned int s_fsize;					   /* 盘块总数 */
+	unsigned int s_ninode;				  /* 直接管理的空闲外存Inode数量 */
+	unsigned int s_inode[NUM_FREE_INODE]; /* 直接管理的空闲外存Inode索引表 */
+
 	unsigned int s_nfree;					   /* 直接管理的空闲盘块数量 */
 	unsigned int s_free[NUM_FREE_BLOCK_GROUP]; /* 直接管理的空闲盘块索引表 */
+
+	// 初始化SuperBlock
+	void Init();
 };
 
 /*
@@ -217,6 +230,7 @@ public:
 	// 清空Inode内容
 	void Clean();
 
+	// 将内存Inode更新到外存中
 	void WriteI();
 };
 
@@ -231,6 +245,10 @@ public:
 	unsigned int f_offset; /* 文件读写位置指针 */
 	unsigned short f_uid;  /* 文件所有者的用户标识数 */
 	unsigned short f_gid;  /* 文件所有者的组标识数 */
+	File()
+	{
+		this->f_inode = NULL;
+	}
 };
 
 /*
@@ -268,6 +286,8 @@ public:
 	// 将缓存块bp写到磁盘上
 	void Bwrite(Buf *bp);
 
+	void bwrite(const char *buf, unsigned int start_addr, unsigned int size);
+
 	// 根据物理设备块号读取缓存
 	Buf *Bread(int blkno);
 
@@ -278,16 +298,16 @@ public:
 // 相当于FileSystem、FileManager、InodeTable的合体
 class FileSystem
 {
-protected:
-	short curId;					  // 目前使用的userID
-	static BufferManager *bufManager; // 缓存控制块管理类
-	SuperBlock *spb;				  // 超级块
-	UserTable *userTable;			  // 用户表
-	File openFileTable[NUM_FILE];	  // 打开文件表，由于只有一个进程所以没有进程打开文件表
-	Inode inodeTable[NUM_INODE];	  // 内存Inode表
-	Inode *curDirInode;				  // 指向当前目录的Inode指针
-	Inode *rootDirInode;			  // 根目录内存Inode
 private:
+	short curId;				  // 目前使用的userID
+	BufferManager *bufManager;	  // 缓存控制块管理类
+	SuperBlock *spb;			  // 超级块
+	UserTable *userTable;		  // 用户表
+	File openFileTable[NUM_FILE]; // 打开文件表，由于只有一个进程所以没有进程打开文件表
+	Inode inodeTable[NUM_INODE];  // 内存Inode表
+	Inode *curDirInode;			  // 指向当前目录的Inode指针
+	Inode *rootDirInode;		  // 根目录内存Inode
+
 	// 根据path获取Inode
 	Inode *NameI(string path);
 
@@ -303,9 +323,6 @@ private:
 	// 查找pInode是否有给定mode的权限
 	int Access(Inode *pInode, unsigned int mode);
 
-	// 根据文件路径查找对应的Inode
-	Inode *NameI();
-
 	// 分配一个空闲的外存Inode
 	Inode *IAlloc();
 
@@ -319,7 +336,7 @@ public:
 
 	FileSystem();
 
-	static BufferManager *GetBufferManager()
+	BufferManager *GetBufferManager()
 	{
 		return this->bufManager;
 	}
@@ -339,3 +356,5 @@ public:
 	// 创建文件
 	int fcreate(string path);
 };
+
+#endif

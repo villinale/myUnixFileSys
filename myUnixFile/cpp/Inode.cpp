@@ -10,6 +10,8 @@
 #include "../h/errno.h"
 #include "../h/Utility.h"
 
+extern FileSystem fs;
+
 /// @brief      将逻辑块号lbn映射到物理盘块号phyBlkno
 /// @param lbn  逻辑块号lbn，指的是在i_addr[]中的索引
 /// @return int 返回物理盘块号phyBlkno
@@ -111,13 +113,13 @@ void Inode::WriteI()
 {
     Buf *bp;
 
-    BufferManager *bufMgr = FileSystem::GetBufferManager();
+    BufferManager *bufMgr = fs.GetBufferManager();
 
     // 从磁盘读取磁盘Inode
     bp = bufMgr->Bread(POSITION_DISKINODE + this->i_number / NUM_INODE_PER_BLOCK);
     int offset = (this->i_number % NUM_INODE_PER_BLOCK) * sizeof(DiskInode);
 
-    DiskInode *dp;
+    DiskInode* dp = NULL;
     memcpy_s(dp, SIZE_DISKINODE, this, SIZE_DISKINODE);
     memcpy(bp->b_addr + offset, dp, SIZE_DISKINODE);
     bufMgr->Bwrite(bp);

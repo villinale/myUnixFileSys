@@ -3,6 +3,7 @@
 // 其实这些错误码在C++中本身就已经被定义了
 #define EPERM 1         // Operation not permitted 操作不允许
 #define ENOENT 2        // No such file or directory 没有这样的文件或目录
+#define EFAULT 14       // Bad address 错误的地址
 #define EEXIST 17       // File exists 文件存在
 #define ENOTDIR 20      // Not a directory 不是一个目录
 #define EINVAL 22       // Invalid argument 无效的参数
@@ -24,7 +25,6 @@
 #define	EAGAIN	11	//Try again 资源暂时不可用
 #define	ENOMEM	12	//Out of memory 内存溢出
 #define	EACCES	13	//Permission denied 拒绝许可
-#define	EFAULT	14	//Bad address 错误的地址
 #define	ENOTBLK	15	//Block device required 块设备请求
 #define	EBUSY	16	//Device or resource busy 设备或资源忙
 #define	EXDEV	18	//Cross-device link 无效的交叉链接

@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-14 20:58:36
+ * @LastEditTime: 2023-05-15 16:40:40
  * @Description: FileSystem类，相当于FileManager
  */
 #include "../h/header.h"
@@ -21,6 +21,22 @@ short FileSystem::getCurUserID()
 
 void FileSystem::init()
 {
+	ifstream fd;
+	fd.open(DISK_PATH, ios::in | ios::binary | ios::_Nocreate);
+	// 如果没有打开文件则输出提示信息并throw错误
+	if (!fd.is_open())
+	{
+		cout << "无法打开文件卷myDisk.img" << endl;
+		throw(errno);
+	}
+
+	// 先对缓存相关内容进行初始化
+	this->bufManager = new BufferManager();
+	// 才能对superblock进行初始化，因为会调用函数
+	this->spb->Init();
+
+	// 分配一个空闲的外存Inode来存放根目录
+	Inode *pInode = this->IAlloc();
 }
 
 /// @brief 判断指定外存Inode是否已经加载到内存中
@@ -437,7 +453,7 @@ int FileSystem::fcreate(string path)
 	// 将文件写入目录项中
 	dirPtr->d_inodenumber[iinDir] = newinode->i_number;
 	strcpy(dirPtr->d_filename[iinDir], name.c_str());
-	// 将父目录写回磁盘中
+	// 将父目录写回磁盘中，因为一个目录项就是一个盘块大小，直接修改了b_addr，其实并不安全
 	pbuf->b_addr = directory2Char(dirPtr);
 	this->bufManager->Bwrite(pbuf);
 
