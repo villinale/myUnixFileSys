@@ -18,5 +18,8 @@ char *directory2Char(Directory *dir);
 // 将char*转换为DiskInode*
 DiskInode *char2DiskInode(char *ch);
 
+// 将uint数组转换为char*
+char *uintArray2Char(unsigned int *arr, int len);
+
 // 将字符串按照分隔符分割
 vector<string> stringSplit(const string &strIn, char delim);

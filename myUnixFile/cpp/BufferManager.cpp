@@ -66,7 +66,7 @@ Buf *BufferManager::GetBlk(int blkno)
     Buf *bp = NULL;
 
     // 在设备队列中找与blkno相同者，直接利用
-    for (bp = this->devtab.b_forw; bp != &(this->devtab); bp = this->devtab.b_forw)
+    for (bp = this->devtab.b_back; bp != &(this->devtab); bp = bp->b_back)
     {
         if (bp->b_blkno == blkno)
         {
@@ -81,11 +81,14 @@ Buf *BufferManager::GetBlk(int blkno)
         // 不太可能，因为每次都是设备读写之后就立即释放字符块
     }
 
-    // 取自由队列第一个空闲块
-    bp = this->bFreeList.av_forw;
-    // 从自由队列中取出
-    bp->av_back->av_forw = bp->av_forw;
+    // 取出自由队列队头
+    bp = this->bFreeList.av_back;
+    // 从自由队列取出
     bp->av_forw->av_back = bp->av_back;
+    bp->av_back->av_forw = bp->av_forw;
+    // 从原设备队列或NODEV队列取出
+    bp->b_forw->b_back = bp->b_back;
+    bp->b_back->b_forw = bp->b_forw;
 
     // 如果该字符块是延迟写，将其异步写到磁盘上
     if (bp->b_flags & Buf::B_DELWRI)
@@ -147,7 +150,7 @@ void BufferManager::bwrite(const char *buf, unsigned int start_addr, unsigned in
             memcpy_s(bp->b_addr, SIZE_BUFFER, buf + pos, SIZE_BUFFER);
             pos += SIZE_BUFFER;
         }
-        bp->b_flags |= Buf::BufFlag::B_DELWRI; // 标记为异步写
+        bp->b_flags |= Buf::BufFlag::B_DELWRI; // 标记为延迟写
     }
 }
 
@@ -155,7 +158,7 @@ void BufferManager::bwrite(const char *buf, unsigned int start_addr, unsigned in
 /// @param bp 缓存块
 void BufferManager::Bwrite(Buf *bp)
 {
-    // I/O写操作，送入该设备的I/O请求队列
+    // 将缓存放入设备的I/O请求队列队尾
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
     bp->av_forw->av_back = bp;
@@ -184,8 +187,8 @@ void BufferManager::Bwrite(Buf *bp)
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
     // 加入自由队列
-    bp->av_forw = bFreeList.av_forw;
-    bp->av_back = &bFreeList;
+    bp->av_forw = (this->bFreeList).av_forw;
+    bp->av_back = &((this->bFreeList));
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 }
@@ -232,9 +235,9 @@ Buf *BufferManager::Bread(int blkno)
     // 从I/O请求队列取出
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
-    // 加入自由队列
-    bp->av_forw = bFreeList.av_forw;
-    bp->av_back = &bFreeList;
+    // 加入自由队列队尾
+    bp->av_forw = this->bFreeList.av_forw;
+    bp->av_back = &(this->bFreeList);
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 

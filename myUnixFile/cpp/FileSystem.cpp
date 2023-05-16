@@ -21,17 +21,21 @@ short FileSystem::getCurUserID()
 
 void FileSystem::init()
 {
-	ifstream fd;
-	fd.open(DISK_PATH, ios::in | ios::binary | ios::_Nocreate);
+	fstream fd(DISK_PATH, ios::out);
+	fd.close();
+	fd.open(DISK_PATH, ios::out | ios::in | ios::binary);
 	// 如果没有打开文件则输出提示信息并throw错误
 	if (!fd.is_open())
 	{
-		cout << "无法打开文件卷myDisk.img" << endl;
+		cout << "无法打开一级文件myDisk.img" << endl;
 		throw(errno);
 	}
 
 	// 先对缓存相关内容进行初始化
 	this->bufManager = new BufferManager();
+	this->spb = new SuperBlock();
+	this->userTable = new UserTable();
+
 	// 才能对superblock进行初始化，因为会调用函数
 	this->spb->Init();
 

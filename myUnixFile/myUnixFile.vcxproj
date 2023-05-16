@@ -149,6 +149,7 @@
     <ClCompile Include="cpp\FileSystem.cpp" />
     <ClCompile Include="cpp\Inode.cpp" />
     <ClCompile Include="cpp\main.cpp" />
+    <ClCompile Include="cpp\SuperBlock.cpp" />
     <ClCompile Include="cpp\UserTable.cpp" />
     <ClCompile Include="cpp\Utility.cpp" />
   </ItemGroup>

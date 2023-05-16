@@ -1,3 +1,10 @@
+/*
+ * @Author: yingxin wang
+ * @Date: 2023-05-14 11:37:44
+ * @LastEditors: yingxin wang
+ * @LastEditTime: 2023-05-16 15:21:51
+ * @Description: 请填写简介
+ */
 #include "../h/Utility.h"
 
 /// @brief 将char*转换为Directory*
@@ -24,6 +31,21 @@ char *directory2Char(Directory *dir)
     try
     {
         char *ch = reinterpret_cast<char *>(dir);
+        return ch;
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
+}
+
+char *uintArray2Char(unsigned int *arr, int len)
+{
+    try
+    {
+        char *ch = new char[len * sizeof(char)];
+        for (int i = 0; i < len; i++)
+            ch[i] = arr[i];
         return ch;
     }
     catch (std::exception &e)
