@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-14 11:37:02
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-14 14:51:30
+ * @LastEditTime: 2023-05-16 16:00:47
  * @Description: 使用到的工具函数
  */
 
@@ -12,11 +12,11 @@
 // 将char*转换为Directory*
 Directory *char2Directory(char *ch);
 
-// 将Directory*转换为char*
-char *directory2Char(Directory *dir);
-
 // 将char*转换为DiskInode*
 DiskInode *char2DiskInode(char *ch);
+
+// 将Directory*转换为char*
+char *directory2Char(Directory *dir);
 
 // 将uint数组转换为char*
 char *uintArray2Char(unsigned int *arr, int len);

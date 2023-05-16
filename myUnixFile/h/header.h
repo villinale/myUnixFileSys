@@ -91,6 +91,8 @@ public:
 	char u_password[NUM_USER][NUM_USER_PASSWORD]; // 用户密码
 	UserTable();
 
+	// 添加root用户
+	void AddRoot();
 	// 添加用户
 	void AddUser(const short id, const char *name, const char *password, const short givengid);
 	// 删除用户
@@ -218,13 +220,15 @@ public:
 
 	unsigned short i_number; // 在inode区中的编号,放到最后以便于将内存Inode转换为外存Inode
 
+	Inode();
+
 	// 将逻辑块号lbn映射到物理盘块号phyBlkno
 	int Bmap(int lbn);
 
 	// 根据缓存内容bp将外存Inode读取数据到内存Inode
 	void ICopy(Buf *bp, int inumber);
 
-	// 根据规则给内存Inode赋予文件权限，没有用到
+	// 根据规则给内存Inode赋予文件权限
 	unsigned short AssignMode(unsigned short id, unsigned short gid);
 
 	// 清空Inode内容
@@ -263,6 +267,9 @@ public:
 	char d_filename[NUM_SUB_DIR][NUM_FILE_NAME]; // 子目录文件名
 
 	Directory();
+
+	// 根据目录名name和Inode号inumber给当前目录创建一个子目录
+	int mkdir(const char *name, const unsigned int inumber);
 };
 
 /*
@@ -293,6 +300,11 @@ public:
 
 	// 暂做备用
 	void Bread(char *buf, int blkno, int offset, int size);
+
+	//
+	void ClrBuf(Buf *bp);
+
+	void SaveAll();
 };
 
 // 相当于FileSystem、FileManager、InodeTable的合体
@@ -326,6 +338,8 @@ private:
 	// 分配一个空闲的外存Inode
 	Inode *IAlloc();
 
+	Buf *Alloc();
+
 public:
 	enum FileMode
 	{
@@ -355,6 +369,11 @@ public:
 
 	// 创建文件
 	int fcreate(string path);
+
+	// 创建文件夹
+	int mkdir(string path);
+
+	void exit();
 };
 
 #endif

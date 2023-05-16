@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-15 16:40:40
+ * @LastEditTime: 2023-05-16 21:22:45
  * @Description: FileSystem类，相当于FileManager
  */
 #include "../h/header.h"
@@ -31,16 +31,51 @@ void FileSystem::init()
 		throw(errno);
 	}
 
-	// 先对缓存相关内容进行初始化
+	// 先对用户进行初始化
+	this->userTable = new UserTable();
+	this->userTable->AddRoot(); // 添加root用户
+	this->curId = ROOT_ID;
+
+	// 对缓存相关内容进行初始化
 	this->bufManager = new BufferManager();
 	this->spb = new SuperBlock();
-	this->userTable = new UserTable();
 
 	// 才能对superblock进行初始化，因为会调用函数
 	this->spb->Init();
+	// 将superblock写回磁盘 //NO1
+	this->bufManager->bwrite((const char *)this->spb, POSITION_SUPERBLOCK, sizeof(SuperBlock));
 
-	// 分配一个空闲的外存Inode来存放根目录
-	Inode *pInode = this->IAlloc();
+	// 现在对目录进行初始化
+	// 分配一个空闲的外存Inode来索引根目录
+	this->rootDirInode = this->IAlloc();
+	this->rootDirInode->i_uid = ROOT_ID;
+	this->rootDirInode->i_gid = this->userTable->GetGId(ROOT_ID);
+	this->rootDirInode->i_mode = Inode::INodeMode::IDIR |
+								 Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W | Inode::INodeMode::OWNER_X |
+								 Inode::INodeMode::GROUP_R | Inode::INodeMode::GROUP_X |
+								 Inode::INodeMode::OTHER_R | Inode::INodeMode::OTHER_X;
+	this->rootDirInode->i_nlink = 1;
+	this->rootDirInode->i_size = 0;
+	this->rootDirInode->i_mtime = unsigned int(time(NULL));
+	this->rootDirInode->i_atime = unsigned int(time(NULL));
+	this->curDirInode = this->rootDirInode;
+	// 分配一个数据盘块存放根目录内容
+	Directory *rootDir = new Directory();
+	rootDir->mkdir(".", this->rootDirInode->i_number);	// 创建自己
+	rootDir->mkdir("..", this->rootDirInode->i_number); // 创建父亲，根目录的父亲就是自己，这也是为什么不能直接调用mkdir函数的原因
+
+	// 跟root文件夹分配数据盘块号并且写回磁盘数据区中
+	Buf *newBuf = this->Alloc();
+	newBuf->b_addr = directory2Char(rootDir);
+	this->bufManager->bwrite(directory2Char(rootDir), POSITION_BLOCK+ newBuf->b_blkno, sizeof(rootDir));
+	//this->bufManager->Bwrite(newBuf); //NO2
+	this->rootDirInode->i_addr[0] = newBuf->b_blkno;
+
+	// 分别给根目录添加etc和home两个目录
+	this->mkdir("/etc"); //NO3
+	this->mkdir("/home");//NO4
+	// 将rootInode写回磁盘中
+	this->rootDirInode->WriteI();
 }
 
 /// @brief 判断指定外存Inode是否已经加载到内存中
@@ -73,7 +108,7 @@ Inode *FileSystem::IGet(int inumber)
 		return pInode;
 	}
 
-	// 没有找到，从外存读取
+	// 没有找到，先从内存Inode节点表中分配一个Inode,再从外存读取
 	for (int i = 0; i < NUM_INODE; i++)
 		// 如果该内存Inode引用计数为零，则该Inode表示空闲，可以使用
 		if (this->inodeTable[i].i_count == 0)
@@ -135,17 +170,17 @@ Inode *FileSystem::NameI(string path)
 			pbuf = this->bufManager->Bread(blkno);
 
 			// 将数据转为目录结构
-			Directory *dirPtr = char2Directory(pbuf->b_addr);
+			Directory *fatherDir = char2Directory(pbuf->b_addr);
 
 			// 循环查找目录中的每个元素
 			for (int i = 0; i < NUM_SUB_DIR; i++)
 			{
 				// 如果找到对应子目录
-				if (paths[ipaths] == dirPtr->d_filename[i])
+				if (paths[ipaths] == fatherDir->d_filename[i])
 				{
 					ipaths++;
 					isFind = true;
-					pInode = this->IGet(dirPtr->d_inodenumber[i]);
+					pInode = this->IGet(fatherDir->d_inodenumber[i]);
 					break;
 				}
 			}
@@ -278,20 +313,62 @@ int FileSystem::fopen(string path)
 	return fd;
 }
 
+/// @brief 分配空闲数据盘块
+/// @return Buf* 返回分配到的缓冲区，如果分配失败，返回NULL
+Buf *FileSystem::Alloc()
+{
+	int blkno; // 分配到的空闲磁盘块编号
+	Buf *pBuf;
+
+	// 从索引表“栈顶”获取空闲磁盘块编号
+	blkno = this->spb->s_free[--this->spb->s_nfree];
+
+	// 已分配尽所有的空闲磁盘块，直接返回
+	if (0 == blkno)
+	{
+		this->spb->s_nfree = 0;
+		cout << "磁盘已满!没有空余盘块" << endl;
+		throw(ENOSPC);
+		return NULL;
+	}
+
+	// 空闲磁盘块索引表已空，下一组空闲磁盘块的编号读入SuperBlock的s_free
+	if (this->spb->s_nfree <= 0)
+	{
+		// 读入该空闲磁盘块
+		pBuf = this->bufManager->Bread(blkno);
+
+		int *p = (int *)pBuf->b_addr;
+
+		// 首先读出空闲盘块数s_nfre
+		this->spb->s_nfree = (unsigned int)pBuf->b_addr[0];
+
+		// 根据空闲盘块数读取空闲盘块索引表
+		for (int i = 0; i < this->spb->s_nfree; i++)
+			this->spb->s_free[i] = (unsigned int)pBuf->b_addr[i + 1];
+	}
+
+	// 这样的话分配一空闲磁盘块，返回该磁盘块的缓存指针
+	pBuf = this->bufManager->GetBlk(blkno); // 为该磁盘块申请缓存
+	this->bufManager->ClrBuf(pBuf);			// 清空缓存中的数据
+
+	return pBuf;
+}
+
 /// @brief 分配一个空闲的外存Inode
 /// @return Inode* 返回分配到的内存Inode，如果分配失败，返回NULL
 Inode *FileSystem::IAlloc()
 {
 	Buf *pBuf;
 	Inode *pNode;
-	int ino = 0;				  // 分配到的空闲外存Inode编号
-	SuperBlock *ispb = this->spb; // 获取副本，防止有操作失误
+	int ino = 0; // 分配到的空闲外存Inode编号
 
 	// SuperBlock直接管理的空闲Inode索引表已空
-	if (ispb->s_ninode <= 0)
+	// 注入新的空闲Inode索引表
+	if (this->spb->s_ninode <= 0)
 	{
 		// 依次读入磁盘Inode区中的磁盘块，搜索其中空闲外存Inode，记入空闲Inode索引表
-		for (int i = 0; i < ispb->s_isize; i++)
+		for (int i = 0; i < this->spb->s_isize; i++)
 		{
 			pBuf = this->bufManager->Bread(POSITION_DISKINODE + i / NUM_INODE_PER_BLOCK);
 
@@ -314,38 +391,35 @@ Inode *FileSystem::IAlloc()
 				 * 如果外存inode的i_mode==0，此时并不能确定
 				 * 该inode是空闲的，因为有可能是内存inode没有写到
 				 * 磁盘上,所以要继续搜索内存inode中是否有相应的项
+				 * 从源码中得到的注释
 				 */
 				if (this->IsLoaded(ino) == -1)
 				{
 					// 该外存Inode没有对应的内存拷贝，将其记入空闲Inode索引表
-					ispb->s_inode[spb->s_ninode++] = ino;
+					this->spb->s_inode[this->spb->s_ninode++] = ino;
 
 					/* 如果空闲索引表已经装满，则不继续搜索 */
-					if (ispb->s_ninode >= 100)
-					{
+					if (this->spb->s_ninode >= 100)
 						break;
-					}
 				}
 			}
 
 			// 如果空闲索引表已经装满，则不继续搜索
-			if (ispb->s_ninode >= 100)
-			{
+			if (this->spb->s_ninode >= 100)
 				break;
-			}
 		}
 	}
 
 	// 如果这样了还没有可用外存Inode，返回NULL
-	if (ispb->s_ninode <= 0)
+	if (this->spb->s_ninode <= 0)
 	{
 		cout << "磁盘上外存Inode区已满!" << endl;
 		throw(ENOSPC);
 		return NULL;
 	}
 
-	// 现在分配内存Inode
-	int inumber = ispb->s_inode[--ispb->s_ninode];
+	// 现在从外存分配内存Inode
+	int inumber = this->spb->s_inode[--this->spb->s_ninode];
 	pNode = IGet(inumber);
 	if (NULL == pNode) // 不做修改操作
 		return NULL;
@@ -363,6 +437,12 @@ Inode *FileSystem::IAlloc()
 int FileSystem::fcreate(string path)
 {
 	vector<string> paths = stringSplit(path, '/');
+	if (paths.size() == 0)
+	{
+		cout << "路径无效!" << endl;
+		throw(EINVAL);
+		return -1;
+	}
 	string name = paths[paths.size() - 1];
 	if (name.size() > NUM_FILE_NAME)
 	{
@@ -371,15 +451,15 @@ int FileSystem::fcreate(string path)
 		return -1;
 	}
 
-	Inode *pInode;
+	Inode *fatherInode;
 
 	// 从路径中删除文件名
 	path.erase(path.size() - name.size(), name.size());
 	// 找到想要创建的文件的父文件夹相应的Inode
-	pInode = this->NameI(path);
+	fatherInode = this->NameI(path);
 
 	// 没有找到相应的Inode
-	if (pInode == NULL)
+	if (fatherInode == NULL)
 	{
 		cout << "没有找到对应的文件或目录!" << endl;
 		throw(ENOENT);
@@ -387,7 +467,7 @@ int FileSystem::fcreate(string path)
 	}
 
 	// 如果找到，判断创建的文件的父文件夹是不是文件夹类型
-	if (pInode->i_mode & Inode::INodeMode::IDIR)
+	if (!(fatherInode->i_mode & Inode::INodeMode::IDIR))
 	{
 		cout << "不是一个正确的目录项!" << endl;
 		throw(ENOTDIR);
@@ -395,7 +475,7 @@ int FileSystem::fcreate(string path)
 	}
 
 	// 如果找到，判断是否有权限写文件
-	if (this->Access(pInode, FileMode::WRITE) == 0)
+	if (this->Access(fatherInode, FileMode::WRITE) == 0)
 	{
 		cout << "没有权限写文件!" << endl;
 		throw(EACCES);
@@ -407,22 +487,22 @@ int FileSystem::fcreate(string path)
 	// 当有权限写文件时，判断是否有重名文件而且查看是否有空闲的子目录可以写
 	// 计算要读的物理盘块号
 	// 由于目录文件只占一个盘块，所以只有一项不为空
-	int blkno = pInode->Bmap(0);
+	int blkno = fatherInode->Bmap(0);
 	// 读取磁盘的数据
-	Buf *pbuf = this->bufManager->Bread(blkno);
+	Buf *fatherBuf = this->bufManager->Bread(blkno);
 	// 将数据转为目录结构
-	Directory *dirPtr = char2Directory(pbuf->b_addr);
+	Directory *fatherDir = char2Directory(fatherBuf->b_addr);
 	// 循环查找目录中的每个元素
 	for (int i = 0; i < NUM_SUB_DIR; i++)
 	{
 		// 如果找到对应子目录
-		if (name == dirPtr->d_filename[i])
+		if (name == fatherDir->d_filename[i])
 		{
 			cout << "文件已存在!" << endl;
 			throw(EEXIST);
 			return -1;
 		}
-		if (isFull && dirPtr->d_inodenumber[i] == 0)
+		if (isFull && fatherDir->d_inodenumber[i] == -1)
 		{
 			isFull = false;
 			iinDir = i;
@@ -455,11 +535,149 @@ int FileSystem::fcreate(string path)
 	newinode->WriteI();
 
 	// 将文件写入目录项中
-	dirPtr->d_inodenumber[iinDir] = newinode->i_number;
-	strcpy(dirPtr->d_filename[iinDir], name.c_str());
+	fatherDir->d_inodenumber[iinDir] = newinode->i_number;
+	strcpy(fatherDir->d_filename[iinDir], name.c_str());
 	// 将父目录写回磁盘中，因为一个目录项就是一个盘块大小，直接修改了b_addr，其实并不安全
-	pbuf->b_addr = directory2Char(dirPtr);
-	this->bufManager->Bwrite(pbuf);
+	//fatherBuf->b_addr = directory2Char(fatherDir);
+	this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));
+	//this->bufManager->Bwrite(fatherBuf);
 
 	return 0;
+}
+
+/// @brief 创建文件夹
+/// @param path 文件夹路径
+/// @return int 创建成功为0，否则为-1
+int FileSystem::mkdir(string path)
+{
+	vector<string> paths = stringSplit(path, '/');
+	if (paths.size() == 0)
+	{
+		cout << "路径无效!" << endl;
+		throw(EINVAL);
+		return -1;
+	}
+
+	string name = paths[paths.size() - 1];
+	if (name.size() > NUM_FILE_NAME)
+	{
+		cout << "新建目录名过长!" << endl;
+		throw(ENAMETOOLONG);
+		return -1;
+	}
+
+	Inode *fatherInode;
+
+	// 从路径中删除文件夹名
+	path.erase(path.size() - name.size(), name.size());
+	// 找到想要创建的文件夹名的父文件夹相应的Inode
+	fatherInode = this->NameI(path);
+
+	// 没有找到相应的Inode
+	if (fatherInode == NULL)
+	{
+		cout << "没有找到对应的文件或目录!" << endl;
+		throw(ENOENT);
+		return -1;
+	}
+
+	// 如果找到，判断创建的文件夹的父文件夹是不是文件夹类型
+	if (!(fatherInode->i_mode & Inode::INodeMode::IDIR))
+	{
+		cout << "不是一个正确的目录项!" << endl;
+		throw(ENOTDIR);
+		return -1;
+	}
+
+	// 如果找到，判断是否有权限写文件
+	if (this->Access(fatherInode, FileMode::WRITE) == 0)
+	{
+		cout << "没有权限写文件!" << endl;
+		throw(EACCES);
+		return -1;
+	}
+
+	bool isFull = true;
+	int iinDir = 0;
+	// 当有权限写文件时，判断是否有重名文件而且查看是否有空闲的子目录可以写
+	// 计算要读的物理盘块号
+	// 由于目录文件只占一个盘块，所以只有一项不为空
+	int blkno = fatherInode->Bmap(0);
+	// 读取磁盘的数据
+	Buf *fatherBuf = this->bufManager->Bread(blkno);
+	// 将数据转为目录结构
+	Directory *fatherDir = char2Directory(fatherBuf->b_addr);
+	// 循环查找目录中的每个元素
+	for (int i = 0; i < NUM_SUB_DIR; i++)
+	{
+		// 如果找到对应子目录
+		if (name == fatherDir->d_filename[i])
+		{
+			cout << "文件已存在!" << endl;
+			throw(EEXIST);
+			return -1;
+		}
+		if (isFull && fatherDir->d_inodenumber[i] == -1)
+		{
+			isFull = false;
+			iinDir = i;
+		}
+	}
+
+	// 如果目录已满
+	if (isFull)
+	{
+		cout << "目录已满!" << endl;
+		throw(ENOSPC);
+		return -1;
+	}
+
+	// 这才开始创建新的文件夹
+	// 分配一个新的内存Inode
+	Inode *newinode = this->IAlloc();
+	newinode->i_mode = Inode::INodeMode::IDIR |
+					   Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W | Inode::INodeMode::OWNER_X |
+					   Inode::INodeMode::GROUP_R | Inode::INodeMode::GROUP_X |
+					   Inode::INodeMode::OTHER_R | Inode::INodeMode::OTHER_X;
+	newinode->i_nlink = 1;
+	newinode->i_uid = this->curId;
+	newinode->i_gid = this->userTable->GetGId(this->curId);
+	newinode->i_size = 0;
+	newinode->i_mtime = unsigned int(time(NULL));
+	newinode->i_atime = unsigned int(time(NULL));
+	// 给新文件夹添加两个目录项
+	Directory *newDir = new Directory();
+	newDir->mkdir(".", newinode->i_number);					// 创建自己
+	newDir->mkdir("..", fatherInode->i_number);				// 创建父亲
+	newinode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2; // 新文件夹大小是两个目录项
+	// 跟新文件夹分配数据盘块号
+	Buf *newBuf = this->Alloc();
+	newBuf->b_addr = directory2Char(newDir);
+
+	// 将新文件夹写入其父亲的目录项中
+	fatherDir->mkdir(name.c_str(), newinode->i_number);
+	fatherInode->i_size += sizeof(Directory) / NUM_SUB_DIR; // 父亲的大小增加一个目录项
+	fatherInode->i_addr[iinDir] = newBuf->b_blkno;			// 将新文件夹的盘块号写入父亲的目录项中
+	fatherBuf->b_addr = directory2Char(fatherDir);
+
+	// 统一写回：父目录inode，新目录inode，父目录数据块、新目录数据块
+	fatherInode->WriteI();
+	newinode->WriteI();
+	this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));
+	this->bufManager->bwrite(directory2Char(newDir), POSITION_BLOCK + newBuf->b_blkno, sizeof(newDir));
+
+	//this->bufManager->Bwrite(fatherBuf);
+	//this->bufManager->Bwrite(newBuf);
+
+	return 0;
+}
+
+void FileSystem::exit()
+{
+	// 将superblock写回磁盘
+	this->bufManager->bwrite((const char *)this->spb, POSITION_SUPERBLOCK, sizeof(SuperBlock));
+	// TODO:将userTable写回磁盘
+
+	// 将所有标记延迟写的内容都写回磁盘
+	this->bufManager->SaveAll();
 }

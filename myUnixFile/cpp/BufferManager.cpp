@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 21:22:11
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-15 16:18:59
+ * @LastEditTime: 2023-05-16 20:06:10
  * @Description: BufferManager相关操作
  */
 #include "../h/header.h"
@@ -265,4 +265,19 @@ void BufferManager::Bread(char *buf, int blkno, int offset, int size)
     bp = this->Bread(blkno);
     memcpy(buf, bp->b_addr + offset, size);
     return;
+}
+
+void BufferManager::ClrBuf(Buf *bp)
+{
+    int *pInt = (int *)bp->b_addr;
+    for (unsigned int i = 0; i < SIZE_BUFFER / sizeof(int); i++)
+        pInt[i] = 0;
+    bp->b_wcount = 0;
+}
+
+void BufferManager::SaveAll()
+{
+    for (int i = 0; i < NUM_BUF; i++)
+        if (this->m_Buf[i].b_flags & Buf::B_DELWRI)
+            this->Bwrite(&this->m_Buf[i]);
 }

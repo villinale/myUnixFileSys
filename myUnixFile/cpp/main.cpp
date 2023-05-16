@@ -11,7 +11,8 @@ void test()
 	cout << "SuperBlock:" << sizeof(SuperBlock) << endl;
 	cout << "Directory:" << sizeof(Directory) << endl;
 	
-	fs.init();
+	//fs.init();
+	fs.exit();
 }
 
 int main()

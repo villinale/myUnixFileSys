@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-14 20:54:07
+ * @LastEditTime: 2023-05-16 21:32:39
  * @Description: Inode类相关操作
  */
 
@@ -11,6 +11,21 @@
 #include "../h/Utility.h"
 
 extern FileSystem fs;
+
+Inode::Inode()
+{
+    this->i_mode = 0;
+    this->i_count = 0;
+    this->i_nlink = 0;
+    this->i_number = -1;
+    this->i_uid = -1;
+    this->i_gid = -1;
+    this->i_size = 0;
+    for (int i = 0; i < 10; i++)
+    {
+        this->i_addr[i] = 0;
+    }
+}
 
 /// @brief      将逻辑块号lbn映射到物理盘块号phyBlkno
 /// @param lbn  逻辑块号lbn，指的是在i_addr[]中的索引
@@ -72,33 +87,19 @@ void Inode::ICopy(Buf *bp, int inumber)
 /// @return unsigned short 返回文件权限
 unsigned short Inode::AssignMode(unsigned short id, unsigned short gid)
 {
-    unsigned short mode = 0;
-
-    if (id == this->i_uid)
-    {
-        mode |= (this->i_mode >> 6);
-    }
-    else if (gid == this->i_gid)
-    {
-        mode |= (this->i_mode >> 3);
-    }
-    else
-    {
-        mode |= this->i_mode;
-    }
-
-    return mode;
+    return 0;
 }
 
 /// @brief 清空Inode内容
-/// 这里有意思的是源码，有很多东西并没有被清除，比如i_mode，i_count等等
-/// TODO:其实并没有看懂
+/// 这里有意思的是源码，有很多东西并没有被清除，比如i_number，i_count等等
+/// 但是在做的时候发现很有道理！
+/// TODO:其实并没有看懂，但是还没有看懂
 void Inode::Clean()
 {
     this->i_mode = 0;
-    this->i_count = 0;
+    //this->i_count = 0;
     this->i_nlink = 0;
-    this->i_number = 0;
+    //this->i_number = -1;
     this->i_uid = -1;
     this->i_gid = -1;
     this->i_size = 0;
@@ -119,7 +120,8 @@ void Inode::WriteI()
     bp = bufMgr->Bread(POSITION_DISKINODE + this->i_number / NUM_INODE_PER_BLOCK);
     int offset = (this->i_number % NUM_INODE_PER_BLOCK) * sizeof(DiskInode);
 
-    DiskInode* dp = NULL;
+    DiskInode *dp = new DiskInode;
+    // 将内存Inode复制到磁盘Inode中
     memcpy_s(dp, SIZE_DISKINODE, this, SIZE_DISKINODE);
     memcpy(bp->b_addr + offset, dp, SIZE_DISKINODE);
     bufMgr->Bwrite(bp);
