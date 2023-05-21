@@ -11,7 +11,8 @@ void SuperBlock::Init()
     this->s_fsize = NUM_BLOCK_ALL;
     this->s_ninode = 0;
     for (int i = NUM_FREE_INODE - 1; i >= 0; i--)
-        this->s_inode[this->s_ninode++] = i; // 这样在使用的时候就是从位置最低的inode开始使用
+        this->s_inode[this->s_ninode++] = i + 1; // 这样在使用的时候就是从位置最低的inode开始使用
+    //inode从1开始计数
 
     // superblock一开始应该管理第1组的NUM_FREE_BLOCK_GROUP个盘块
 
@@ -27,8 +28,8 @@ void SuperBlock::Init()
     BufferManager *bufManager = fs.GetBufferManager();
     // 开始分配，总共分配的盘块号[start,end]，两端都取
     // 给superblock分配第5组
-    for (int i = 0; i < this->s_nfree; i++)
-        this->s_free[i] = start + i;
+    for (int i = 0; i < this->s_nfree; i++)  //反着写让位置小的盘块先被分掉
+        this->s_free[i] = this->s_nfree + start - i - 1;
     //bufManager->bwrite((const char*)this->s_free, P, (NUM_FREE_BLOCK_GROUP + 1) * sizeof(int));
     // 给组内第一个盘块写入数据，分配的盘块号[starti,endi)
     int iblk = start;                                        // 组内第一个盘块号
@@ -48,7 +49,7 @@ void SuperBlock::Init()
             j++;
         }
         for (; j < endi; j++) // 循环写入链接的上一组盘块号
-            stack[j - starti+1] = j;
+            stack[j - starti + 1] = j;
         // 将组内第一个盘块写入内存
         bufManager->bwrite(uintArray2Char(stack, inum + 1), istart_addr, (inum + 1) * sizeof(int));
 

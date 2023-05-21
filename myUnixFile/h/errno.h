@@ -3,6 +3,7 @@
 // 其实这些错误码在C++中本身就已经被定义了
 #define EPERM 1         // Operation not permitted 操作不允许
 #define ENOENT 2        // No such file or directory 没有这样的文件或目录
+#define EBADF 9         // Bad file number 坏的文件描述符
 #define EFAULT 14       // Bad address 错误的地址
 #define EEXIST 17       // File exists 文件存在
 #define ENOTDIR 20      // Not a directory 不是一个目录
@@ -20,7 +21,6 @@
 #define	ENXIO	6	//No such device or address 没有这样的设备或地址
 #define	E2BIG	7	//Arg list too long 参数列表太长
 #define	ENOEXEC	8	//Exec format error 执行格式错误
-#define	EBADF	9	//Bad file number 坏的文件描述符
 #define	ECHILD	10	//No child processes 没有子进程
 #define	EAGAIN	11	//Try again 资源暂时不可用
 #define	ENOMEM	12	//Out of memory 内存溢出

@@ -146,6 +146,7 @@
   <ItemGroup>
     <ClCompile Include="cpp\BufferManager.cpp" />
     <ClCompile Include="cpp\Directory.cpp" />
+    <ClCompile Include="cpp\File.cpp" />
     <ClCompile Include="cpp\FileSystem.cpp" />
     <ClCompile Include="cpp\Inode.cpp" />
     <ClCompile Include="cpp\main.cpp" />

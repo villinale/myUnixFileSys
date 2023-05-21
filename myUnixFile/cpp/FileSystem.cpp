@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-16 21:22:45
+ * @LastEditTime: 2023-05-21 15:37:47
  * @Description: FileSystem类，相当于FileManager
  */
 #include "../h/header.h"
@@ -67,15 +67,23 @@ void FileSystem::init()
 	// 跟root文件夹分配数据盘块号并且写回磁盘数据区中
 	Buf *newBuf = this->Alloc();
 	newBuf->b_addr = directory2Char(rootDir);
-	this->bufManager->bwrite(directory2Char(rootDir), POSITION_BLOCK+ newBuf->b_blkno, sizeof(rootDir));
-	//this->bufManager->Bwrite(newBuf); //NO2
+	this->bufManager->bwrite(directory2Char(rootDir), POSITION_BLOCK + newBuf->b_blkno, sizeof(rootDir));
+	// this->bufManager->Bwrite(newBuf); //NO2
+	// 给Inode写回数据区位置
+	this->rootDirInode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2;
 	this->rootDirInode->i_addr[0] = newBuf->b_blkno;
 
 	// 分别给根目录添加etc和home两个目录
-	this->mkdir("/etc"); //NO3
-	this->mkdir("/home");//NO4
+	this->mkdir("/home");
+	this->mkdir("/etc");
 	// 将rootInode写回磁盘中
 	this->rootDirInode->WriteI();
+
+	// 创建并写入用户表
+	this->fcreate("/etc/userTable.txt");
+	File *userTableFile = fopen("/etc/userTable.txt");
+	this->fwrite(userTable2Char(this->userTable), sizeof(userTable), userTableFile);
+	this->fclose(userTableFile);
 }
 
 /// @brief 判断指定外存Inode是否已经加载到内存中
@@ -105,6 +113,7 @@ Inode *FileSystem::IGet(int inumber)
 	{
 		pInode = &this->inodeTable[iInTable];
 		pInode->i_count++;
+		pInode->i_atime = unsigned int(time(NULL));
 		return pInode;
 	}
 
@@ -112,7 +121,10 @@ Inode *FileSystem::IGet(int inumber)
 	for (int i = 0; i < NUM_INODE; i++)
 		// 如果该内存Inode引用计数为零，则该Inode表示空闲，可以使用
 		if (this->inodeTable[i].i_count == 0)
+		{
 			pInode = &(this->inodeTable[i]);
+			break;
+		}
 
 	// 如果内存InodeTable已满，抛出异常
 	if (pInode == NULL)
@@ -125,9 +137,10 @@ Inode *FileSystem::IGet(int inumber)
 	// 如果内存InodeTabl没满，从外存读取指定外存Inode到内存中
 	pInode->i_number = inumber;
 	pInode->i_count++;
+	pInode->i_atime = unsigned int(time(NULL));
 
 	// 将该外存Inode读入缓冲区
-	Buf *pBuf = this->bufManager->Bread(POSITION_DISKINODE + inumber / NUM_INODE_PER_BLOCK);
+	Buf* pBuf = this->bufManager->Bread(POSITION_DISKINODE + (inumber - 1) / NUM_INODE_PER_BLOCK);
 	// 将缓冲区中的外存Inode信息拷贝到新分配的内存Inode中
 	pInode->ICopy(pBuf, inumber);
 	return pInode;
@@ -242,75 +255,6 @@ int FileSystem::Access(Inode *pInode, unsigned int mode)
 		return pInode->i_mode & Inode::INodeMode::OTHER_R;
 	else
 		return 0;
-}
-
-/// @brief 在openFileTable中添加一个文件
-/// @param pInode 要添加的文件的Inode
-/// @return 如果添加成功，返回文件描述符，否则返回-1
-int FileSystem::AddFileinFileTable(Inode *pInode)
-{
-	File *fp = new File;
-	fp->f_uid = this->curId;
-	fp->f_gid = this->userTable->GetGId(this->curId);
-	fp->f_inode = pInode;
-	fp->f_offset = 0;
-
-	for (int i = 0; i < NUM_FILE; i++)
-	{
-		// 进程打开文件描述符表中找到空闲项，则返回之
-		if (this->openFileTable[i].f_inode == NULL)
-		{
-			this->openFileTable[i] = *fp;
-			return i;
-		}
-	}
-	return -1;
-}
-
-/// @brief 打开文件，由于没有系统调用，所以直接返回文件描述符
-/// @param path 文件路径
-/// @return int 文件描述符，文件描述符是从0开始的，所以返回值为-1表示打开失败
-int FileSystem::fopen(string path)
-{
-	if (path.empty())
-	{
-		cout << "路径无效!" << endl;
-		throw(EINVAL);
-		return -1;
-	}
-	Inode *pInode;
-
-	// 找到相应的Inode
-	pInode = this->NameI(path);
-
-	// 没有找到相应的Inode
-	if (NULL == pInode)
-	{
-		cout << "没有找到对应的文件或目录!" << endl;
-		throw(ENOENT);
-		return -1;
-	}
-
-	// 如果找到，判断是否有权限打开文件
-	if (this->Access(pInode, FileMode::EXC) == 0)
-	{
-		cout << "没有权限打开文件!" << endl;
-		throw(EACCES);
-		return -1;
-	}
-
-	// 当有权限打开文件时，在openFileTable中添加文件
-	int fd = this->AddFileinFileTable(pInode);
-
-	// 如果添加失败，说明打开文件过多
-	if (fd == -1)
-	{
-		cout << "已打开过多文件!" << endl;
-		throw(ENFILE);
-		return -1;
-	}
-	// 添加成功并返回文件描述符
-	return fd;
 }
 
 /// @brief 分配空闲数据盘块
@@ -502,7 +446,7 @@ int FileSystem::fcreate(string path)
 			throw(EEXIST);
 			return -1;
 		}
-		if (isFull && fatherDir->d_inodenumber[i] == -1)
+		if (isFull && fatherDir->d_inodenumber[i] == 0)
 		{
 			isFull = false;
 			iinDir = i;
@@ -535,12 +479,16 @@ int FileSystem::fcreate(string path)
 	newinode->WriteI();
 
 	// 将文件写入目录项中
-	fatherDir->d_inodenumber[iinDir] = newinode->i_number;
-	strcpy(fatherDir->d_filename[iinDir], name.c_str());
+	fatherDir->mkdir(name.c_str(), newinode->i_number);
 	// 将父目录写回磁盘中，因为一个目录项就是一个盘块大小，直接修改了b_addr，其实并不安全
-	//fatherBuf->b_addr = directory2Char(fatherDir);
+	// fatherBuf->b_addr = directory2Char(fatherDir);
 	this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));
-	//this->bufManager->Bwrite(fatherBuf);
+	// this->bufManager->Bwrite(fatherBuf);
+
+	// 释放所有Inode
+	if (fatherInode != this->rootDirInode && fatherInode != this->curDirInode)
+		this->IPut(fatherInode);
+	this->IPut(newinode);
 
 	return 0;
 }
@@ -598,7 +546,6 @@ int FileSystem::mkdir(string path)
 	}
 
 	bool isFull = true;
-	int iinDir = 0;
 	// 当有权限写文件时，判断是否有重名文件而且查看是否有空闲的子目录可以写
 	// 计算要读的物理盘块号
 	// 由于目录文件只占一个盘块，所以只有一项不为空
@@ -617,10 +564,9 @@ int FileSystem::mkdir(string path)
 			throw(EEXIST);
 			return -1;
 		}
-		if (isFull && fatherDir->d_inodenumber[i] == -1)
+		if (isFull && fatherDir->d_inodenumber[i] == 0)
 		{
 			isFull = false;
-			iinDir = i;
 		}
 	}
 
@@ -647,17 +593,17 @@ int FileSystem::mkdir(string path)
 	newinode->i_atime = unsigned int(time(NULL));
 	// 给新文件夹添加两个目录项
 	Directory *newDir = new Directory();
-	newDir->mkdir(".", newinode->i_number);					// 创建自己
-	newDir->mkdir("..", fatherInode->i_number);				// 创建父亲
-	newinode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2; // 新文件夹大小是两个目录项
+	newDir->mkdir(".", newinode->i_number);		// 创建自己
+	newDir->mkdir("..", fatherInode->i_number); // 创建父亲
 	// 跟新文件夹分配数据盘块号
 	Buf *newBuf = this->Alloc();
 	newBuf->b_addr = directory2Char(newDir);
+	newinode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2; // 新文件夹大小是两个目录项
+	newinode->i_addr[0] = newBuf->b_blkno;
 
 	// 将新文件夹写入其父亲的目录项中
 	fatherDir->mkdir(name.c_str(), newinode->i_number);
 	fatherInode->i_size += sizeof(Directory) / NUM_SUB_DIR; // 父亲的大小增加一个目录项
-	fatherInode->i_addr[iinDir] = newBuf->b_blkno;			// 将新文件夹的盘块号写入父亲的目录项中
 	fatherBuf->b_addr = directory2Char(fatherDir);
 
 	// 统一写回：父目录inode，新目录inode，父目录数据块、新目录数据块
@@ -666,10 +612,24 @@ int FileSystem::mkdir(string path)
 	this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));
 	this->bufManager->bwrite(directory2Char(newDir), POSITION_BLOCK + newBuf->b_blkno, sizeof(newDir));
 
-	//this->bufManager->Bwrite(fatherBuf);
-	//this->bufManager->Bwrite(newBuf);
+	// this->bufManager->Bwrite(fatherBuf);
+	// this->bufManager->Bwrite(newBuf);
+	// 除FS里的rootInode和curInode外释放所有Inode
+	if (fatherInode != this->rootDirInode && fatherInode != this->curDirInode)
+		this->IPut(fatherInode);
+	this->IPut(newinode);
 
 	return 0;
+}
+
+/// @brief 分配空闲打开文件控制块File结构
+/// @return File* 返回分配到的打开文件控制块File结构，如果分配失败，返回NULL
+File *FileSystem::FAlloc()
+{
+	for (int i = 0; i < NUM_FILE; i++)
+		if (this->openFileTable[i].f_inode == NULL)
+			return &this->openFileTable[i];
+	return NULL;
 }
 
 void FileSystem::exit()
@@ -680,4 +640,151 @@ void FileSystem::exit()
 
 	// 将所有标记延迟写的内容都写回磁盘
 	this->bufManager->SaveAll();
+}
+
+File *FileSystem::fopen(string path)
+{
+	Inode *pinode = this->NameI(path);
+
+	// 没有找到相应的Inode
+	if (pinode == NULL)
+	{
+		cout << "没有找到对应的文件或目录!" << endl;
+		throw(ENOENT);
+		return NULL;
+	}
+
+	// 如果找到，判断所要找的文件是不是文件类型
+	if (!(pinode->i_mode & Inode::INodeMode::IFILE))
+	{
+		cout << "不是一个正确的文件!" << endl;
+		throw(ENOTDIR);
+		return NULL;
+	}
+
+	// 如果找到，判断是否有权限打开文件
+	if (this->Access(pinode, FileMode::EXC) == 0)
+	{
+		cout << "没有权限打开文件!" << endl;
+		throw(EACCES);
+		return NULL;
+	}
+
+	// 分配打开文件控制块File结构
+	File *pFile = this->FAlloc();
+	if (NULL == pFile)
+	{
+		cout << "打开太多文件!" << endl;
+		throw(ENFILE);
+		return NULL;
+	}
+	pFile->f_inode = pinode;
+	pFile->f_offset = 0;
+	pFile->f_uid = this->curId;
+	pFile->f_gid = this->userTable->GetGId(this->curId);
+
+	return pFile;
+}
+
+void FileSystem::fwrite(const char *buffer, int count, File *fp)
+{
+	if (fp == NULL)
+	{
+		cout << "文件指针为空!" << endl;
+		throw(EBADF);
+		return;
+	}
+
+	// 如果找到，判断是否有权限打开文件
+	if (this->Access(fp->f_inode, FileMode::WRITE) == 0)
+	{
+		cout << "没有权限写文件!" << endl;
+		throw(EACCES);
+		return;
+	}
+
+	if (count + fp->f_offset > SIZE_BLOCK * NUM_I_ADDR)
+	{
+		cout << "写入文件太大!" << endl;
+		throw(EFBIG);
+		return;
+	}
+	// 获取文件的Inode
+	Inode *pInode = fp->f_inode;
+
+	// 写文件的三种情况：
+	// 1. 写入的起始位置为逻辑块的起始地址；写入字节数为512-------异步写
+	// 2. 非 写入的起始位置为逻辑块的起始地址；写入字节数为512----先Bread
+	//  2.1 写到缓存末尾----------------------------------------异步写
+	//	2.2 没有写到缓存末尾-------------------------------------延迟写
+
+	int pos = 0; // 已经写入的字节数
+	while (pos < count)
+	{
+		// 计算本次写入位置在文件中的位置
+		int startpos = fp->f_offset + pos;
+		// 计算本次写入物理盘块号，如果文件大小不够的话会在里面新分配物理盘块
+		int blkno = pInode->Bmap(startpos % SIZE_BLOCK);
+		// 计算本次写入的物理位置
+		int startaddr = blkno * SIZE_BLOCK + startpos % SIZE_BLOCK;
+		// 计算本次写入的大小
+		int size = SIZE_BLOCK - startpos % SIZE_BLOCK;
+		if (size > count - pos)
+			size = count - pos; // 修正写入的大小
+
+		// 如果写入的起始位置为逻辑块的起始地址；写入字节数为512-------异步写
+		if (startpos % SIZE_BLOCK == 0 && size == SIZE_BLOCK)
+		{
+			// 申请缓存
+			Buf *pBuf = this->bufManager->GetBlk(blkno);
+			// 将数据写入缓存
+			memcpy(pBuf->b_addr, buffer + pos, size);
+			// 将数据立即写入磁盘
+			this->bufManager->Bwrite(pBuf);
+		}
+		else
+		{ // 非 写入的起始位置为逻辑块的起始地址；写入字节数为512----先Bread
+			// 申请缓存
+			Buf *pBuf = this->bufManager->Bread(blkno);
+			// 将数据写入缓存
+			memcpy(pBuf->b_addr + startpos % SIZE_BLOCK, buffer + pos, size);
+
+			// 写到缓存末尾---异步写
+			if (startpos % SIZE_BLOCK + size == SIZE_BLOCK)
+				this->bufManager->Bwrite(pBuf);
+			else // 没有写到缓存末尾---延迟写
+				this->bufManager->Bdwrite(pBuf);
+		}
+
+		pos += size;
+		fp->f_offset += size;
+	}
+
+	if (pInode->i_size < fp->f_offset)
+		pInode->i_size = fp->f_offset;
+}
+
+/// @brief
+/// @param pNode
+void FileSystem::IPut(Inode *pNode)
+{
+	// 当前进程为引用该内存Inode的唯一进程，且准备释放该内存Inode
+	if (pNode->i_count == 1)
+	{
+		pNode->i_mtime = unsigned int(time(NULL));
+		pNode->i_atime = unsigned int(time(NULL));
+		pNode->WriteI();
+		pNode->Clean();
+	}
+
+	// 减少内存Inode的引用计数，唤醒等待进程
+	pNode->i_count--;
+}
+
+// 根据fd关闭文件
+void FileSystem::fclose(File *fp)
+{
+	// 释放内存结点
+	this->IPut(fp->f_inode);
+	fp->Clean();
 }

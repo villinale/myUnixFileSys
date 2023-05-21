@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 21:22:11
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-16 20:06:10
+ * @LastEditTime: 2023-05-18 15:24:34
  * @Description: BufferManager相关操作
  */
 #include "../h/header.h"
@@ -109,7 +109,7 @@ Buf *BufferManager::GetBlk(int blkno)
     return bp;
 }
 
-/// @brief 将字符写在对应盘块中，但是会标记延迟写
+/// @brief 将字符写在对应盘块中，但是会标记延迟写,要求盘块连续
 /// @param buf 字符
 /// @param start_addr 起始地址
 /// @param size 字符数
@@ -183,6 +183,27 @@ void BufferManager::Bwrite(Buf *bp)
 
     // 更新标志
     bp->b_flags = Buf::BufFlag::B_DONE;
+    // 从I/O请求队列取出
+    bp->av_forw->av_back = bp->av_back;
+    bp->av_back->av_forw = bp->av_forw;
+    // 加入自由队列
+    bp->av_forw = (this->bFreeList).av_forw;
+    bp->av_back = &((this->bFreeList));
+    bp->av_forw->av_back = bp;
+    bp->av_back->av_forw = bp;
+}
+
+void BufferManager::Bdwrite(Buf *bp)
+{
+    // 将缓存放入设备的I/O请求队列队尾
+    bp->av_forw = this->devtab.av_forw;
+    bp->av_back = &(this->devtab);
+    bp->av_forw->av_back = bp;
+    bp->av_back->av_forw = bp;
+
+    // 标记为延迟写
+    bp->b_flags |= (Buf::B_DELWRI | Buf::B_DONE);
+
     // 从I/O请求队列取出
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;

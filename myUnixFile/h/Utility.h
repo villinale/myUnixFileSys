@@ -21,5 +21,8 @@ char *directory2Char(Directory *dir);
 // 将uint数组转换为char*
 char *uintArray2Char(unsigned int *arr, int len);
 
+// 将UserTable*转换为char*
+char *userTable2Char(UserTable *user);
+
 // 将字符串按照分隔符分割
 vector<string> stringSplit(const string &strIn, char delim);

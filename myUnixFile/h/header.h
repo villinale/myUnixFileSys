@@ -85,8 +85,8 @@ vector<string> stringSplit(const string &strIn, char delim);
 class UserTable
 {
 public:
-	unsigned short u_id[NUM_USER];				  // 用户id
-	unsigned short u_gid[NUM_USER];				  // 用户所在组id
+	short u_id[NUM_USER];						  // 用户id
+	short u_gid[NUM_USER];						  // 用户所在组id
 	char u_name[NUM_USER][NUM_USER_NAME];		  // 用户名
 	char u_password[NUM_USER][NUM_USER_PASSWORD]; // 用户密码
 	UserTable();
@@ -98,7 +98,7 @@ public:
 	// 删除用户
 	void DeleteUser(const short id, const char *name);
 
-	unsigned short GetGId(const unsigned short id);
+	short GetGId(const short id);
 };
 
 /*
@@ -130,11 +130,10 @@ public:
 class DiskInode
 {
 public:
+	short d_uid;		 /* 文件所有者的用户标识数 */
+	short d_gid;		 /* 文件所有者的组标识数 */
 	unsigned int d_mode; /* 状态的标志位，定义见enum INodeFlag */
 	int d_nlink;		 /* 文件联结计数，即该文件在目录树中不同路径名的数量 */
-
-	short d_uid; /* 文件所有者的用户标识数 */
-	short d_gid; /* 文件所有者的组标识数 */
 
 	int d_size;				/* 文件大小，字节为单位 */
 	int d_addr[NUM_I_ADDR]; /* 用于文件逻辑块好和物理块好转换的基本索引表 */
@@ -171,7 +170,7 @@ public:
 	Buf *av_forw; // 上一个空闲缓存控制块的指针,将Buf插入自由队列或某一I/O请求队列
 	Buf *av_back; // 下一个空闲缓存控制块的指针,将Buf插入自由队列或某一I/O请求队列
 
-	unsigned int b_wcount; // 需传送的字节数
+	unsigned int b_wcount; // 需传送的字节数,但是好像没啥用
 	char *b_addr;		   // 指向该缓存控制块所管理的缓冲区的首地址
 	unsigned int b_blkno;  // 内存逻辑块号
 
@@ -204,21 +203,20 @@ public:
 	};
 
 public:
-	unsigned short i_uid; // 文件所有者的用户标识数
-	unsigned short i_gid; // 文件所有者的组标识数
+	short i_uid; // 文件所有者的用户标识数
+	short i_gid; // 文件所有者的组标识数
 
 	unsigned short i_mode; // 文件权限，定义见enum INodeMode
+	short i_nlink;		   // 文件联结计数，即该文件在目录树中不同路径名的数量
 
-	unsigned short i_count; // 引用计数
-	unsigned short i_nlink; // 文件联结计数，即该文件在目录树中不同路径名的数量
+	int i_size;				// 文件大小，字节为单位
+	int i_addr[NUM_I_ADDR]; // 指向数据块区，用于文件逻辑块号和物理块号转换的基本索引表
 
-	unsigned int i_size;			 // 文件大小，字节为单位
-	unsigned int i_addr[NUM_I_ADDR]; // 指向数据块区，用于文件逻辑块号和物理块号转换的基本索引表
+	int i_atime; // 最后访问时间
+	int i_mtime; // 最后修改时间
 
-	unsigned int i_atime;
-	unsigned int i_mtime;
-
-	unsigned short i_number; // 在inode区中的编号,放到最后以便于将内存Inode转换为外存Inode
+	short i_count;	// 引用计数
+	short i_number; // 在inode区中的编号,放到最后以便于将内存Inode转换为外存Inode
 
 	Inode();
 
@@ -229,7 +227,7 @@ public:
 	void ICopy(Buf *bp, int inumber);
 
 	// 根据规则给内存Inode赋予文件权限
-	unsigned short AssignMode(unsigned short id, unsigned short gid);
+	unsigned short AssignMode(short id, short gid);
 
 	// 清空Inode内容
 	void Clean();
@@ -247,12 +245,12 @@ class File
 public:
 	Inode *f_inode;		   /* 指向打开文件的内存Inode指针 */
 	unsigned int f_offset; /* 文件读写位置指针 */
-	unsigned short f_uid;  /* 文件所有者的用户标识数 */
-	unsigned short f_gid;  /* 文件所有者的组标识数 */
-	File()
-	{
-		this->f_inode = NULL;
-	}
+	short f_uid;		   /* 文件所有者的用户标识数 */
+	short f_gid;		   /* 文件所有者的组标识数 */
+
+	File();
+
+	void Clean();
 };
 
 /*
@@ -263,13 +261,13 @@ public:
 class Directory
 {
 public:
-	unsigned int d_inodenumber[NUM_SUB_DIR];	 // 子目录Inode号
+	int d_inodenumber[NUM_SUB_DIR];				 // 子目录Inode号
 	char d_filename[NUM_SUB_DIR][NUM_FILE_NAME]; // 子目录文件名
 
 	Directory();
 
 	// 根据目录名name和Inode号inumber给当前目录创建一个子目录
-	int mkdir(const char *name, const unsigned int inumber);
+	int mkdir(const char *name, const int inumber);
 };
 
 /*
@@ -293,6 +291,10 @@ public:
 	// 将缓存块bp写到磁盘上
 	void Bwrite(Buf *bp);
 
+	// 将缓存块延迟写
+	void Bdwrite(Buf *bp);
+
+	// 一步一步延迟写
 	void bwrite(const char *buf, unsigned int start_addr, unsigned int size);
 
 	// 根据物理设备块号读取缓存
@@ -329,16 +331,16 @@ private:
 	// 从外存读取指定外存Inode到内存中
 	Inode *IGet(int inumber);
 
-	// 在openFileTable中添加一个文件
-	int AddFileinFileTable(Inode *pInode);
-
 	// 查找pInode是否有给定mode的权限
 	int Access(Inode *pInode, unsigned int mode);
 
 	// 分配一个空闲的外存Inode
 	Inode *IAlloc();
 
-	Buf *Alloc();
+	void IPut(Inode *pNode);
+
+	// 分配空闲打开文件控制块File结构
+	File *FAlloc();
 
 public:
 	enum FileMode
@@ -355,6 +357,9 @@ public:
 		return this->bufManager;
 	}
 
+	// 分配空闲数据盘块
+	Buf *Alloc();
+
 	// 初始化文件系统
 	void init();
 
@@ -362,16 +367,18 @@ public:
 	short getCurUserID();
 
 	// 根据path打开文件或文件夹
-	int fopen(string path);
+	File *fopen(string path);
 
 	// 根据fd关闭文件
-	// int Close(int fd);
+	void fclose(File *fp);
 
 	// 创建文件
 	int fcreate(string path);
 
 	// 创建文件夹
 	int mkdir(string path);
+
+	void fwrite(const char *buffer, int count, File *fp);
 
 	void exit();
 };

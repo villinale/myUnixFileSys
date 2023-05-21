@@ -13,6 +13,8 @@ UserTable::UserTable()
 	{
 		this->u_id[i] = -1;
 		this->u_gid[i] = -1;
+		strcpy(this->u_name[i], "");
+		strcpy(this->u_password[i], "");
 	}
 }
 
@@ -113,7 +115,7 @@ void UserTable::DeleteUser(const short id, const char *name)
 /// @brief 根据用户id获取用户所在组id
 /// @param id  用户id
 /// @return  返回用户所在组id
-unsigned short UserTable::GetGId(const unsigned short id)
+short UserTable::GetGId(const short id)
 {
 	for (int i = 0; i < NUM_USER; i++)
 		if (this->u_id[i] == id)

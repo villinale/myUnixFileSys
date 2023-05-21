@@ -54,6 +54,20 @@ char *uintArray2Char(unsigned int *arr, int len)
     }
 }
 
+// 将UserTable*转换为char*
+char *userTable2Char(UserTable *user)
+{
+    try
+    {
+        char *ch = reinterpret_cast<char *>(user);
+        return ch;
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
+}
+
 /// @brief 将char*转换为DiskInode*
 /// @param ch 要转换的字符
 /// @return DiskInode* 转换后的DiskInode指针

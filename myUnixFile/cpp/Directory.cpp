@@ -5,7 +5,7 @@ Directory::Directory()
 {
     for (int i = 0; i < NUM_SUB_DIR; i++)
     {
-        this->d_inodenumber[i] = -1;
+        this->d_inodenumber[i] = 0;
         strcpy(this->d_filename[i], "");
     }
 }
@@ -14,8 +14,10 @@ Directory::Directory()
 /// @param name 子目录名
 /// @param inumber 子目录Inode号
 /// @return int 0表示成功,-1表示失败
-int Directory::mkdir(const char *name, const unsigned int inumber)
+int Directory::mkdir(const char *name, const int inumber)
 {
+    if (inumber < 0)
+        return -1;
     bool isFull = true; // 是否已经满了
     int iinDir = 0;     // 空闲的第一个位置
     for (int i = 0; i < NUM_SUB_DIR; i++)
@@ -27,7 +29,7 @@ int Directory::mkdir(const char *name, const unsigned int inumber)
             throw(EEXIST);
             return -1;
         }
-        if (isFull && this->d_inodenumber[i] == -1)
+        if (isFull && this->d_inodenumber[i] == 0)
         {
             isFull = false;
             iinDir = i;
