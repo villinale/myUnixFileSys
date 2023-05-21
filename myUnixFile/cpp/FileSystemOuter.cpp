@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 21:58:57
+ * @LastEditTime: 2023-05-22 00:13:30
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -92,17 +92,31 @@ void FileSystem::init()
 
     // 读取根目录Inode
     buf = this->bufManager->Bread(POSITION_DISKINODE);
-    this->rootDirInode = new Inode();
+    this->rootDirInode = this->IAlloc();
     this->rootDirInode->ICopy(buf, ROOT_DIR_INUMBER);
     this->curDirInode = this->rootDirInode;
+    this->curId = ROOT_ID; // 先这样初始化
     this->curDir = "/";
 
     // 读取用户信息表
-    File *userTableFile = this->fopen("/etc/userTable.txt");
-    char* buffer = NULL;
-    this->fread(userTableFile, buffer, userTableFile->f_inode->i_size);
-    this->userTable = char2UserTable(buffer);
-    this->fclose(userTableFile);
+    // 不能直接调用this->fopen，因为userTable本身还没有初始化
+    Inode *pinode = this->NameI("/etc/userTable.txt");
+    // 没有找到相应的Inode
+    if (pinode == NULL)
+    {
+        cout << "没有找到/etc/userTable.txt!" << endl;
+        throw(ENOENT);
+        return;
+    }
+    // 如果找到，判断所要找的文件是不是文件类型
+    if (!(pinode->i_mode & Inode::INodeMode::IFILE))
+    {
+        cout << "不是一个正确的/etc/userTable.txt文件!" << endl;
+        throw(ENOTDIR);
+        return;
+    }
+    Buf *bp = this->bufManager->Bread(pinode->Bmap(0)); // userTable.txt文件本身只占一个盘块大小
+    this->userTable = char2UserTable(bp->b_addr);
 }
 
 void FileSystem::login()

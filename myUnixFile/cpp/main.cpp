@@ -23,9 +23,7 @@ int main()
 	else
 	{
 		cout << "文件系统已存在，正在加载" << endl;
-		//fs.init();
-		fs.fformat();
-		fs.exit();
+		fs.init();
 	}
 
 	fs.login();
