@@ -2,8 +2,8 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 16:33:35
- * @Description: FileSystem类中在命令行可以调用的函数
+ * @LastEditTime: 2023-05-21 16:44:56
+ * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
 #include "../h/errno.h"

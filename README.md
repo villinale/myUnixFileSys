@@ -7,6 +7,4 @@
 
 2.发现BufferManager是基础，实现GetBlk、Bread、Bwrite
 
-3.然后从文件的打开开始写起，实现open
-
-5.12：open->namei->alloc
+3.尝试实现初始化文件系统的操作，根据需要的内容进行一步一步的填充

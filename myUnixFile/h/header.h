@@ -381,6 +381,8 @@ public:
 	void fwrite(const char *buffer, int count, File *fp);
 
 	void exit();
+
+	/****接下来都是在main中可以调用的可交互的函数实现*****/
 };
 
 #endif
