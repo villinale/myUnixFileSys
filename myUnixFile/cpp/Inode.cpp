@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-18 16:11:44
+ * @LastEditTime: 2023-05-21 21:39:00
  * @Description: Inode类相关操作
  */
 
@@ -66,10 +66,10 @@ int Inode::Bmap(int lbn)
 /// @brief     根据缓存内容bp将外存Inode读取数据到内存Inode
 /// @param bp  缓冲区指针
 /// @param inumber  外存Inode编号
-void Inode::ICopy(Buf* bp, int inumber)
+void Inode::ICopy(Buf *bp, int inumber)
 {
     // 从外存Inode读取数据到内存Inode
-    DiskInode* dp;
+    DiskInode *dp;
 
     int offset = ((inumber - 1) % NUM_INODE_PER_BLOCK) * sizeof(DiskInode);
     dp = char2DiskInode(bp->b_addr + offset);
@@ -115,15 +115,15 @@ void Inode::Clean()
 /// @brief 将内存Inode更新到外存中
 void Inode::WriteI()
 {
-    Buf* bp;
+    Buf *bp;
 
-    BufferManager* bufMgr = fs.GetBufferManager();
+    BufferManager *bufMgr = fs.GetBufferManager();
 
     // 从磁盘读取磁盘Inode
     bp = bufMgr->Bread(POSITION_DISKINODE + (this->i_number - 1) / NUM_INODE_PER_BLOCK);
     int offset = ((this->i_number - 1) % NUM_INODE_PER_BLOCK) * sizeof(DiskInode);
 
-    DiskInode* dp = new DiskInode;
+    DiskInode *dp = new DiskInode;
     // 将内存Inode复制到磁盘Inode中
     dp->d_mode = this->i_mode;
     dp->d_nlink = this->i_nlink;
@@ -136,4 +136,35 @@ void Inode::WriteI()
         dp->d_addr[i] = this->i_addr[i];
     memcpy(bp->b_addr + offset, dp, SIZE_DISKINODE);
     bufMgr->Bwrite(bp);
+}
+
+/// @brief 获取父目录inodenumber
+/// @return int 返回父目录的inodenumber
+int Inode::GetParentInumber()
+{
+    // 非目录文件也不是不能获取父目录，但是不会调用这个函数
+    if (!(this->i_mode & Inode::INodeMode::IDIR))
+        return NULL;
+
+    BufferManager *bufMgr = fs.GetBufferManager();
+
+    // 先获取本目录的目录项，它存有父目录位置
+    Buf *bp = bufMgr->Bread(this->i_addr[0]);
+    Directory *dir = char2Directory(bp->b_addr);
+
+    return dir->d_inodenumber[1];
+}
+
+/// @brief 获取目录内容
+/// @return Directory* 返回目录内容
+Directory *Inode::GetDir()
+{
+    // 非目录文件不能获取目录内容
+    if (!(this->i_mode & Inode::INodeMode::IDIR))
+        return NULL;
+
+    BufferManager *bufMgr = fs.GetBufferManager();
+
+    Buf *bp = bufMgr->Bread(this->i_addr[0]);
+    Directory *dir = char2Directory(bp->b_addr);
 }

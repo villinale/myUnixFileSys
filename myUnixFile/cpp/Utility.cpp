@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-14 11:37:44
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-16 15:21:51
+ * @LastEditTime: 2023-05-21 20:26:24
  * @Description: 请填写简介
  */
 #include "../h/Utility.h"
@@ -15,6 +15,33 @@ Directory *char2Directory(char *ch)
     try
     {
         Directory *objPtr = reinterpret_cast<Directory *>(ch);
+        return objPtr;
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
+}
+
+// 将char*转换为SuperBlock*
+SuperBlock *char2SuperBlock(char *ch)
+{
+    try
+    {
+        SuperBlock *objPtr = reinterpret_cast<SuperBlock *>(ch);
+        return objPtr;
+    }
+    catch (std::exception &e)
+    {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
+}
+
+UserTable *char2UserTable(char *ch)
+{
+    try
+    {
+        UserTable *objPtr = reinterpret_cast<UserTable *>(ch);
         return objPtr;
     }
     catch (std::exception &e)

@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:31:20
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 16:33:02
+ * @LastEditTime: 2023-05-21 16:54:54
  * @Description: FileSystem内部调用的各个函数内容
  */
 #include "../h/header.h"
@@ -12,7 +12,6 @@
 /// @brief FileSystem类构造函数
 FileSystem::FileSystem()
 {
-    this->init();
 }
 
 /// @brief 获取当前UserID
@@ -20,75 +19,6 @@ FileSystem::FileSystem()
 short FileSystem::getCurUserID()
 {
     return this->curId;
-}
-
-/// @brief 初始化文件系统
-void FileSystem::init()
-{
-    fstream fd(DISK_PATH, ios::out);
-    fd.close();
-    fd.open(DISK_PATH, ios::out | ios::in | ios::binary);
-    // 如果没有打开文件则输出提示信息并throw错误
-    if (!fd.is_open())
-    {
-        cout << "无法打开一级文件myDisk.img" << endl;
-        throw(errno);
-    }
-
-    // 先对用户进行初始化
-    this->userTable = new UserTable();
-    this->userTable->AddRoot(); // 添加root用户
-    this->curId = ROOT_ID;
-    this->userTable->AddUser(this->curId, "unix", "1", ROOT_GID + 1); // 添加unix用户
-
-    // 对缓存相关内容进行初始化
-    this->bufManager = new BufferManager();
-    this->spb = new SuperBlock();
-
-    // 才能对superblock进行初始化，因为会调用函数
-    this->spb->Init();
-    // 将superblock写回磁盘 //NO1
-    this->bufManager->bwrite((const char *)this->spb, POSITION_SUPERBLOCK, sizeof(SuperBlock));
-
-    // 现在对目录进行初始化
-    // 分配一个空闲的外存Inode来索引根目录
-    this->rootDirInode = this->IAlloc();
-    this->rootDirInode->i_uid = ROOT_ID;
-    this->rootDirInode->i_gid = this->userTable->GetGId(ROOT_ID);
-    this->rootDirInode->i_mode = Inode::INodeMode::IDIR |
-                                 Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W | Inode::INodeMode::OWNER_X |
-                                 Inode::INodeMode::GROUP_R | Inode::INodeMode::GROUP_X |
-                                 Inode::INodeMode::OTHER_R | Inode::INodeMode::OTHER_X;
-    this->rootDirInode->i_nlink = 1;
-    this->rootDirInode->i_size = 0;
-    this->rootDirInode->i_mtime = unsigned int(time(NULL));
-    this->rootDirInode->i_atime = unsigned int(time(NULL));
-    this->curDirInode = this->rootDirInode;
-    // 分配一个数据盘块存放根目录内容
-    Directory *rootDir = new Directory();
-    rootDir->mkdir(".", this->rootDirInode->i_number);  // 创建自己
-    rootDir->mkdir("..", this->rootDirInode->i_number); // 创建父亲，根目录的父亲就是自己，这也是为什么不能直接调用mkdir函数的原因
-
-    // 跟root文件夹分配数据盘块号并且写回磁盘数据区中
-    Buf *newBuf = this->Alloc();
-    newBuf->b_addr = directory2Char(rootDir);
-    this->bufManager->bwrite(directory2Char(rootDir), POSITION_BLOCK + newBuf->b_blkno, sizeof(rootDir));
-    // this->bufManager->Bwrite(newBuf); //NO2
-    // 给Inode写回数据区位置
-    this->rootDirInode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2;
-    this->rootDirInode->i_addr[0] = newBuf->b_blkno;
-
-    // 分别给根目录添加etc和home两个目录
-    this->mkdir("/home");
-    this->mkdir("/etc");
-    // 将rootInode写回磁盘中
-    this->rootDirInode->WriteI();
-
-    // 创建并写入用户表
-    this->fcreate("/etc/userTable.txt");
-    File *userTableFile = fopen("/etc/userTable.txt");
-    this->fwrite(userTable2Char(this->userTable), sizeof(userTable), userTableFile);
-    this->fclose(userTableFile);
 }
 
 /// @brief 判断指定外存Inode是否已经加载到内存中

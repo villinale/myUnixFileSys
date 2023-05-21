@@ -6,6 +6,7 @@
 
 #define ROOT_ID 0
 #define ROOT_GID 0
+#define ROOT_DIR_INUMBER 1
 
 #include <iostream>
 #include <fstream>
@@ -99,6 +100,8 @@ public:
 	void DeleteUser(const short id, const char *name);
 
 	short GetGId(const short id);
+
+	short FindUser(const char *name, const char *password);
 };
 
 /*
@@ -234,6 +237,12 @@ public:
 
 	// 将内存Inode更新到外存中
 	void WriteI();
+
+	// 获取父目录inodenumber
+	int GetParentInumber();
+
+	// 获取目录内容
+	Directory *GetDir();
 };
 
 /*
@@ -314,6 +323,8 @@ class FileSystem
 {
 private:
 	short curId;				  // 目前使用的userID
+	string curName;				  // 目前使用的userName
+	string curDir;				  // 目前所在的目录
 	BufferManager *bufManager;	  // 缓存控制块管理类
 	SuperBlock *spb;			  // 超级块
 	UserTable *userTable;		  // 用户表
@@ -360,29 +371,36 @@ public:
 	// 分配空闲数据盘块
 	Buf *Alloc();
 
-	// 初始化文件系统
-	void init();
-
 	// 获取当前用户的ID
 	short getCurUserID();
 
-	// 根据path打开文件或文件夹
-	File *fopen(string path);
-
-	// 根据fd关闭文件
-	void fclose(File *fp);
-
+	/*Upper文件中的内容*/
 	// 创建文件
 	int fcreate(string path);
-
 	// 创建文件夹
 	int mkdir(string path);
-
+	// 退出系统
+	void exit();
+	// 初始化文件系统
+	void fformat();
+	// 根据path打开文件或文件夹
+	File *fopen(string path);
+	// 根据fd关闭文件
+	void fclose(File *fp);
+	// 写文件
 	void fwrite(const char *buffer, int count, File *fp);
 
-	void exit();
+	Directory getDir();
+
+	void fread(File *fp, char *buffer, int count);
 
 	/****接下来都是在main中可以调用的可交互的函数实现*****/
+	void init();
+	void ls();
+	void help();
+	void login();
+	void fun();
+	void cd(string subname);
 };
 
 #endif

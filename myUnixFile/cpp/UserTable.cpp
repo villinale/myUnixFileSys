@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-08 17:37:16
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-16 16:34:32
+ * @LastEditTime: 2023-05-21 20:42:16
  * @Description: User相关操作
  */
 #include "../h/header.h"
@@ -120,5 +120,17 @@ short UserTable::GetGId(const short id)
 	for (int i = 0; i < NUM_USER; i++)
 		if (this->u_id[i] == id)
 			return this->u_gid[i];
+	return -1;
+}
+
+/// @brief 查找用户
+/// @param name 用户名
+/// @param password 密码
+/// @return 返回用户id	如果没有找到返回-1
+short UserTable::FindUser(const char *name, const char *password)
+{
+	for (int i = 1; i < NUM_USER; i++)
+		if (strcmp(this->u_name[i], name) == 0)
+			return this->u_id[i];
 	return -1;
 }
