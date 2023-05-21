@@ -5,26 +5,30 @@ FileSystem fs;
 
 int main()
 {
-	cout << "æ¬¢è¿Žæ¥åˆ°myUnixFileç³»ç»Ÿï¼" << endl;
-	cout << "      /\\_/\\ " << endl;
-	cout << "     ( >^_^< )" << endl;
-	cout << "      \_____/" << endl;
+	cout << "»¶Ó­À´µ½myUnixFileÏµÍ³!" << endl;
+	cout << "       /\\_/\\ " << endl;
+	cout << "     ( > o < )" << endl;
+	cout << "      \\_____/" << endl;
+	cout << "³õÊ¼rootÓÃ»§ÃûÊÇroot£¬ÃÜÂëÒ²ÊÇroot" << endl;
+	cout << "³õÊ¼ÆÕÍ¨ÓÃ»§ÃûÊÇunix£¬ÃÜÂëÒ²ÊÇ1" << endl;
+	cout << "×Ô¼ºÊÔÊÔ¿´°É!" << endl;
 
 	fstream fd;
 	fd.open(DISK_PATH, ios::in);
 	if (!fd.is_open())
 	{
-		cout << "æ–‡ä»¶ç³»ç»Ÿä¸å­˜åœ¨ï¼Œæ­£åœ¨è¿›è¡Œåˆå§‹åŒ–" << endl;
+		printf("ÎÄ¼þÏµÍ³²»´æÔÚ£¬ÕýÔÚ½øÐÐ³õÊ¼»¯\n");
 		fs.fformat();
 	}
 	else
 	{
-		cout << "æ–‡ä»¶ç³»ç»Ÿå·²å­˜åœ¨ï¼Œæ­£åœ¨åŠ è½½" << endl;
-		fs.init();
+		cout << "ÎÄ¼þÏµÍ³ÒÑ´æÔÚ£¬ÕýÔÚ¼ÓÔØ" << endl;
+		//fs.init();
+		fs.fformat();
+		fs.exit();
 	}
 
 	fs.login();
-	cout << "è¾“å…¥helpå¯ä»¥æŸ¥çœ‹å‘½ä»¤æ¸…å•" << endl;
 	fs.fun();
 
 	return 0;

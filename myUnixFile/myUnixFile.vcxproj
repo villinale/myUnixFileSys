@@ -147,7 +147,9 @@
     <ClCompile Include="cpp\BufferManager.cpp" />
     <ClCompile Include="cpp\Directory.cpp" />
     <ClCompile Include="cpp\File.cpp" />
-    <ClCompile Include="cpp\FileSystem.cpp" />
+    <ClCompile Include="cpp\FileSystemInner.cpp" />
+    <ClCompile Include="cpp\FileSystemOuter.cpp" />
+    <ClCompile Include="cpp\FileSystemUpper.cpp" />
     <ClCompile Include="cpp\Inode.cpp" />
     <ClCompile Include="cpp\main.cpp" />
     <ClCompile Include="cpp\SuperBlock.cpp" />

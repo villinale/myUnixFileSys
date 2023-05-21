@@ -2,8 +2,8 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 21:45:15
- * @Description: FileSystemç±»åœ¨mainä¸­å¯ä»¥è°ƒç”¨çš„å¯äº¤äº’çš„å‡½æ•°,å°½é‡åšåˆ°åªè¾“å‡º
+ * @LastEditTime: 2023-05-21 21:58:57
+ * @Description: FileSystemÀàÔÚmainÖĞ¿ÉÒÔµ÷ÓÃµÄ¿É½»»¥µÄº¯Êı,¾¡Á¿×öµ½Ö»Êä³ö
  */
 
 #include "../h/header.h"
@@ -13,58 +13,46 @@
 void FileSystem::help()
 {
     // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
-    cout << "å‘½ä»¤        è¯´æ˜" << endl;
-    cout << "cd          æ ¼å¼åŒ–æ–‡ä»¶ç³»ç»Ÿ" << endl;
-    cout << "fformat     æ ¼å¼åŒ–æ–‡ä»¶ç³»ç»Ÿ" << endl;
-    printf("fformat                                     - æ ¼å¼åŒ–æ–‡ä»¶ç³»ç»Ÿ\n");
-    printf("mkdir      <dir name>                       - åˆ›å»ºç›®å½•\n");
-    printf("cd         <dir name>                       - è¿›å…¥ç›®å½•\n");
-    printf("ls                                          - æ˜¾ç¤ºå½“å‰ç›®å½•æ¸…å•\n");
-    printf("rmdir      <dir name>                       - åˆ é™¤ç›®å½•\n");
-    printf("touch      <file name>                      - åˆ›å»ºæ–°æ–‡ä»¶\n");
-    printf("chmod      <file name/dir name> <mode(OTC)> - ä¿®æ”¹æ–‡ä»¶æˆ–ç›®å½•æƒé™\n");
-    printf("rm         <file name>                      - åˆ é™¤æ–‡ä»¶\n");
-    printf("login      <user name>                      - ç”¨æˆ·ç™»å½•\n");
-    printf("logout                                      - ç”¨æˆ·æ³¨é”€\n");
-    printf("useradd    <user name> <group name>         - æ·»åŠ ç”¨æˆ·\n");
-    printf("userdel    <user name>                      - åˆ é™¤ç”¨æˆ·\n");
-    printf("groupadd   <group name>                     - æ·»åŠ ç”¨æˆ·ç»„\n");
-    printf("groupdel   <group name>                     - åˆ é™¤ç”¨æˆ·ç»„\n");
-    printf("df                                          - æŸ¥çœ‹ç£ç›˜ä½¿ç”¨æƒ…å†µ\n");
-    printf("show       <file name>                      - æ‰“å°æ–‡ä»¶å†…å®¹\n");
-    printf("vi         <file name>                      - ç”¨ç¼–è¾‘å™¨æ‰“å¼€æ–‡ä»¶\n");
-    printf("win2fs	   <win file name> <fs file name>   - å°†Windowsæ–‡ä»¶å†…å®¹å¤åˆ¶åˆ°FSæ–‡ä»¶ç³»ç»Ÿæ–‡ä»¶\n");
-    printf("fs2win	   <fs file name> <win file name>   - å°†FSæ–‡ä»¶ç³»ç»Ÿæ–‡ä»¶å†…å®¹å¤åˆ¶åˆ°Windowsæ–‡ä»¶\n");
-    printf("help                                        - æ˜¾ç¤ºå‘½ä»¤æ¸…å•\n");
-    printf("cls                                         - æ¸…å±\n");
-    printf("exit                                        - é€€å‡ºç³»ç»Ÿ\n");
+    cout << "ÃüÁî        ËµÃ÷" << endl;
+    printf("cd          ¸ñÊ½»¯ÎÄ¼şÏµÍ³\n");
+    printf("fformat     ¸ñÊ½»¯ÎÄ¼şÏµÍ³\n");
 }
 
-/// @brief åˆ—ç›®å½•
+/// @brief ÁĞÄ¿Â¼
 void FileSystem::ls()
 {
+    Directory *dir = this->curDirInode->GetDir();
+    int i;
+    for (i = 0; i < NUM_SUB_DIR; i++)
+    {
+        if (dir->d_inodenumber[i] == 0)
+            break;
+        cout << dir->d_filename[i] << "\t";
+    }
 }
 
+/// @brief ´ò¿ª×ÓÄ¿Â¼
+/// @param subname ×ÓÄ¿Â¼Ãû³Æ
 void FileSystem::cd(string subname)
 {
-    // å›é€€åˆ°çˆ¶ç›®å½•çš„æƒ…å†µ
+    // »ØÍËµ½¸¸Ä¿Â¼µÄÇé¿ö
     if (subname == "..")
     {
-        if (this->curDir == "/") // æ ¹ç›®å½•æƒ…å†µ
+        if (this->curDir == "/") // ¸ùÄ¿Â¼Çé¿ö
             return;
 
         this->curDir = this->curDir.substr(0, this->curDir.find_last_of('/'));
 
-        this->IPut(this->curDirInode); // é‡Šæ”¾å½“å‰ç›®å½•çš„Inode
-        // å›é€€çˆ¶ç›®å½•çš„Inode
+        this->IPut(this->curDirInode); // ÊÍ·Åµ±Ç°Ä¿Â¼µÄInode
+        // »ØÍË¸¸Ä¿Â¼µÄInode
         this->curDirInode = this->IGet(this->curDirInode->GetParentInumber());
     }
-    else if (subname == ".") // å½“å‰ç›®å½•æƒ…å†µ
+    else if (subname == ".") // µ±Ç°Ä¿Â¼Çé¿ö
     {
         return;
     }
 
-    // æ™®é€šæƒ…å†µï¼Œè¿›å…¥å­æ–‡ä»¶å¤¹ä¸­
+    // ÆÕÍ¨Çé¿ö£¬½øÈë×ÓÎÄ¼ş¼ĞÖĞ
     Directory *dir = this->curDirInode->GetDir();
     int i;
     for (i = 0; i < NUM_SUB_DIR; i++)
@@ -76,41 +64,42 @@ void FileSystem::cd(string subname)
     }
     if (i == NUM_SUB_DIR)
     {
-        cout << "ç›®å½•ä¸å­˜åœ¨ï¼" << endl;
+        cout << "Ä¿Â¼²»´æÔÚ!" << endl;
         return;
     }
     this->curDirInode = this->IGet(dir->d_inodenumber[i]);
     this->curDir += "/" + subname;
 }
 
-/// @brief åˆå§‹åŒ–ç³»ç»Ÿï¼Œç”¨äºå·²æœ‰ç£ç›˜æ–‡ä»¶çš„æƒ…å†µ
+/// @brief ³õÊ¼»¯ÏµÍ³£¬ÓÃÓÚÒÑÓĞ´ÅÅÌÎÄ¼şµÄÇé¿ö
 void FileSystem::init()
 {
     fstream fd(DISK_PATH, ios::out | ios::in | ios::binary);
-    // å¦‚æœæ²¡æœ‰æ‰“å¼€æ–‡ä»¶åˆ™è¾“å‡ºæç¤ºä¿¡æ¯å¹¶throwé”™è¯¯
+    // Èç¹ûÃ»ÓĞ´ò¿ªÎÄ¼şÔòÊä³öÌáÊ¾ĞÅÏ¢²¢throw´íÎó
     if (!fd.is_open())
     {
-        cout << "æ— æ³•æ‰“å¼€ä¸€çº§æ–‡ä»¶myDisk.img" << endl;
+        cout << "ÎŞ·¨´ò¿ªÒ»¼¶ÎÄ¼şmyDisk.img" << endl;
         throw(errno);
     }
+    fd.close();
 
-    // å¯¹ç¼“å­˜ç›¸å…³å†…å®¹è¿›è¡Œåˆå§‹åŒ–
+    // ¶Ô»º´æÏà¹ØÄÚÈİ½øĞĞ³õÊ¼»¯
     this->bufManager = new BufferManager();
 
-    // è¯»å–è¶…çº§å—
+    // ¶ÁÈ¡³¬¼¶¿é
     Buf *buf = this->bufManager->Bread(POSITION_SUPERBLOCK);
     this->spb = char2SuperBlock(buf->b_addr);
 
-    // è¯»å–æ ¹ç›®å½•Inode
+    // ¶ÁÈ¡¸ùÄ¿Â¼Inode
     buf = this->bufManager->Bread(POSITION_DISKINODE);
     this->rootDirInode = new Inode();
     this->rootDirInode->ICopy(buf, ROOT_DIR_INUMBER);
     this->curDirInode = this->rootDirInode;
     this->curDir = "/";
 
-    // è¯»å–ç”¨æˆ·ä¿¡æ¯è¡¨
+    // ¶ÁÈ¡ÓÃ»§ĞÅÏ¢±í
     File *userTableFile = this->fopen("/etc/userTable.txt");
-    char *buffer;
+    char* buffer = NULL;
     this->fread(userTableFile, buffer, userTableFile->f_inode->i_size);
     this->userTable = char2UserTable(buffer);
     this->fclose(userTableFile);
@@ -122,27 +111,27 @@ void FileSystem::login()
     short id;
     while (true)
     {
-        cout << "è¯·è¾“å…¥ç”¨æˆ·å:";
+        cout << "ÇëÊäÈëÓÃ»§Ãû:";
         cin >> name;
-        cout << "è¯·è¾“å…¥å¯†ç :";
+        cout << "ÇëÊäÈëÃÜÂë:";
         cin >> pswd;
         id = this->userTable->FindUser(name.c_str(), pswd.c_str());
         if (id == -1)
         {
-            cout << "ç”¨æˆ·ä¸å­˜åœ¨ï¼" << endl;
+            cout << "ÓÃ»§²»´æÔÚ!" << endl;
             continue;
         }
         else
             break;
     }
-    cout << "ç™»é™†æˆåŠŸï¼" << endl;
+    cout << "µÇÂ½³É¹¦!" << endl;
     this->curId = id;
     this->curName = name;
-    return name;
 }
 
 void FileSystem::fun()
 {
+    cout << "ÊäÈëhelp¿ÉÒÔ²é¿´ÃüÁîÇåµ¥" << endl;
     vector<string> input;
     string strIn;
     while (true)
@@ -153,6 +142,9 @@ void FileSystem::fun()
         if (input.size() == 0)
             continue;
 
-        // if ()
+        if (input[0] == "ls")
+            this->ls();
+        else if (input[0] == "cd")
+            this->cd(input[1]);
     }
 }

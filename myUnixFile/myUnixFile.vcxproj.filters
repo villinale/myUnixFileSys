@@ -35,9 +35,6 @@
     <ClCompile Include="cpp\BufferManager.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="cpp\FileSystem.cpp">
-      <Filter>源文件</Filter>
-    </ClCompile>
     <ClCompile Include="cpp\Directory.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
@@ -51,6 +48,15 @@
       <Filter>源文件</Filter>
     </ClCompile>
     <ClCompile Include="cpp\File.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="cpp\FileSystemInner.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="cpp\FileSystemUpper.cpp">
+      <Filter>源文件</Filter>
+    </ClCompile>
+    <ClCompile Include="cpp\FileSystemOuter.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
   </ItemGroup>

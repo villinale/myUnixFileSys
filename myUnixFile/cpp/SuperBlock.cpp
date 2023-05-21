@@ -11,52 +11,56 @@ void SuperBlock::Init()
     this->s_fsize = NUM_BLOCK_ALL;
     this->s_ninode = 0;
     for (int i = NUM_FREE_INODE - 1; i >= 0; i--)
-        this->s_inode[this->s_ninode++] = i + 1; // è¿™æ ·åœ¨ä½¿ç”¨çš„æ—¶å€™å°±æ˜¯ä»ä½ç½®æœ€ä½çš„inodeå¼€å§‹ä½¿ç”¨
-    //inodeä»1å¼€å§‹è®¡æ•°
+        this->s_inode[this->s_ninode++] = i + 1; // ÕâÑùÔÚÊ¹ÓÃµÄÊ±ºò¾ÍÊÇ´ÓÎ»ÖÃ×îµÍµÄinode¿ªÊ¼Ê¹ÓÃ
+    //inode´Ó1¿ªÊ¼¼ÆÊı
 
-    // superblockä¸€å¼€å§‹åº”è¯¥ç®¡ç†ç¬¬1ç»„çš„NUM_FREE_BLOCK_GROUPä¸ªç›˜å—
+    // superblockÒ»¿ªÊ¼Ó¦¸Ã¹ÜÀíµÚ1×éµÄNUM_FREE_BLOCK_GROUP¸öÅÌ¿é
 
-    // æˆç»„é“¾æ¥,ä»åœ°å€æœ€å¤§å¼€å§‹è¿›è¡Œé“¾æ¥
-    // SPBç®¡ç†ä½ç½®æœ€å°çš„ç›˜å—
+    // ³É×éÁ´½Ó,´ÓµØÖ·×î´ó¿ªÊ¼½øĞĞÁ´½Ó
+    // SPB¹ÜÀíÎ»ÖÃ×îĞ¡µÄÅÌ¿é
     unsigned int end = NUM_BLOCK_ALL;
     unsigned int start = POSITION_BLOCK;
     int numgroup = (end - start + 1) / NUM_FREE_BLOCK_GROUP + 1;
-    // æ ¹æ®è®¡ç®—å¾—ä¼šæˆä¸º5ç»„,åˆ†åˆ«æ˜¯[79,100,100,100,99]ï¼Œä¸èƒ½éšä¾¿æ”¹å˜constçš„å¸¸é‡
-    // ç”±äºç¬¬ä¸€ç»„æ˜¯99ä¸ªï¼Œæ‰€ä»¥ä¸€å¼€å§‹s_nfreeä¼šåŠ 1ï¼Œä¸€å¼€å§‹ç®¡ç†79ä¸ªç›˜å—
+    // ¸ù¾İ¼ÆËãµÃ»á³ÉÎª5×é,·Ö±ğÊÇ[79,100,100,100,99]£¬²»ÄÜËæ±ã¸Ä±äconstµÄ³£Á¿
+    // ÓÉÓÚµÚÒ»×éÊÇ99¸ö£¬ËùÒÔÒ»¿ªÊ¼s_nfree»á¼Ó1£¬Ò»¿ªÊ¼¹ÜÀí79¸öÅÌ¿é
     this->s_nfree = end - start - (numgroup - 1) * NUM_FREE_BLOCK_GROUP + 1;
 
     BufferManager *bufManager = fs.GetBufferManager();
-    // å¼€å§‹åˆ†é…ï¼Œæ€»å…±åˆ†é…çš„ç›˜å—å·[start,end]ï¼Œä¸¤ç«¯éƒ½å–
-    // ç»™superblockåˆ†é…ç¬¬5ç»„
-    for (int i = 0; i < this->s_nfree; i++)  //åç€å†™è®©ä½ç½®å°çš„ç›˜å—å…ˆè¢«åˆ†æ‰
+    Buf* bp;
+    // ¿ªÊ¼·ÖÅä£¬×Ü¹²·ÖÅäµÄÅÌ¿éºÅ[start,end]£¬Á½¶Ë¶¼È¡
+    // ¸øsuperblock·ÖÅäµÚ5×é
+    for (int i = 0; i < this->s_nfree; i++)  //·´×ÅĞ´ÈÃÎ»ÖÃĞ¡µÄÅÌ¿éÏÈ±»·Öµô
         this->s_free[i] = this->s_nfree + start - i - 1;
     //bufManager->bwrite((const char*)this->s_free, P, (NUM_FREE_BLOCK_GROUP + 1) * sizeof(int));
-    // ç»™ç»„å†…ç¬¬ä¸€ä¸ªç›˜å—å†™å…¥æ•°æ®ï¼Œåˆ†é…çš„ç›˜å—å·[starti,endi)
-    int iblk = start;                                        // ç»„å†…ç¬¬ä¸€ä¸ªç›˜å—å·
-    int istart_addr = iblk * SIZE_BLOCK;                     // ç»„å†…ç¬¬ä¸€ä¸ªç›˜å—çš„åœ°å€
-    int inum = NUM_FREE_BLOCK_GROUP;                                // ä¸Šä¸€ç»„ä¸ªæ•°
-    int starti = start + this->s_nfree;                      // ä¸Šä¸€ç»„å¼€å§‹çš„ç›˜å—å·
-    int endi = start + this->s_nfree + NUM_FREE_BLOCK_GROUP; // ä¸Šä¸€ç»„ç»“æŸçš„ç›˜å—å·
-    for (int i = 2; i <= numgroup; i++) //æœ€åä¸€ç»„å·²ç»ç»™superblockåˆ†äº†
+    // ¸ø×éÄÚµÚÒ»¸öÅÌ¿éĞ´ÈëÊı¾İ£¬·ÖÅäµÄÅÌ¿éºÅ[starti,endi)
+    int iblk = start;                                        // ×éÄÚµÚÒ»¸öÅÌ¿éºÅ
+    int istart_addr = iblk * SIZE_BLOCK;                     // ×éÄÚµÚÒ»¸öÅÌ¿éµÄµØÖ·
+    int inum = NUM_FREE_BLOCK_GROUP;                                // ÉÏÒ»×é¸öÊı
+    int starti = start + this->s_nfree;                      // ÉÏÒ»×é¿ªÊ¼µÄÅÌ¿éºÅ
+    int endi = start + this->s_nfree + NUM_FREE_BLOCK_GROUP; // ÉÏÒ»×é½áÊøµÄÅÌ¿éºÅ
+    for (int i = 2; i <= numgroup; i++) //×îºóÒ»×éÒÑ¾­¸øsuperblock·ÖÁË
     {
-        //æ¯æ¬¡æ–°å»ºä¸€ä¸ªä¿è¯éƒ½æ˜¯æ¸…é›¶çš„
-        unsigned int* stack = new unsigned int[inum + 1]{0};       // ç¬¬ä¸€ä½æ˜¯é“¾æ¥çš„ä¸Šä¸€ç»„çš„ç›˜å—ä¸ªæ•°
+        //Ã¿´ÎĞÂ½¨Ò»¸ö±£Ö¤¶¼ÊÇÇåÁãµÄ
+        unsigned int* stack = new unsigned int[inum + 1]{0};       // µÚÒ»Î»ÊÇÁ´½ÓµÄÉÏÒ»×éµÄÅÌ¿é¸öÊı
         int j = starti;
-        stack[0] = inum;                    // ç¬¬ä¸€ä½æ˜¯é“¾æ¥çš„ä¸Šä¸€ç»„çš„ç›˜å—ä¸ªæ•°
-        if (i == numgroup)                  //ç¬¬ä¸€ç»„ç›˜å—çš„ç¬¬ä¸€ä¸ªå†…å®¹æ˜¯0ï¼Œæ ‡å¿—ç»“æŸ
+        stack[0] = inum;                    // µÚÒ»Î»ÊÇÁ´½ÓµÄÉÏÒ»×éµÄÅÌ¿é¸öÊı
+        if (i == numgroup)                  //µÚÒ»×éÅÌ¿éµÄµÚÒ»¸öÄÚÈİÊÇ0£¬±êÖ¾½áÊø
         {
             stack[1] = 0;
             j++;
         }
-        for (; j < endi; j++) // å¾ªç¯å†™å…¥é“¾æ¥çš„ä¸Šä¸€ç»„ç›˜å—å·
+        for (; j < endi; j++) // Ñ­»·Ğ´ÈëÁ´½ÓµÄÉÏÒ»×éÅÌ¿éºÅ
             stack[j - starti + 1] = j;
-        // å°†ç»„å†…ç¬¬ä¸€ä¸ªç›˜å—å†™å…¥å†…å­˜
-        bufManager->bwrite(uintArray2Char(stack, inum + 1), istart_addr, (inum + 1) * sizeof(int));
+        // ½«×éÄÚµÚÒ»¸öÅÌ¿éĞ´Èë´ÅÅÌ
+        //bufManager->bwrite(uintArray2Char(stack, inum + 1), istart_addr, (inum + 1) * sizeof(int));
+        bp = bufManager->GetBlk(iblk);
+        bp->b_addr = uintArray2Char(stack, inum + 1);
+        bufManager->Bwrite(bp);
 
-        // æ›´æ–°å„ä¸ªå‚æ•°
+        // ¸üĞÂ¸÷¸ö²ÎÊı
         iblk = endi;
         istart_addr = iblk * SIZE_BLOCK;
-        inum = (i != (numgroup-1)) ? NUM_FREE_BLOCK_GROUP : (NUM_FREE_BLOCK_GROUP - 1); // ç¬¬ä¸€ç»„æ˜¯NUM_FREE_BLOCK_GROUP - 1ä¸ª
+        inum = (i != (numgroup-1)) ? NUM_FREE_BLOCK_GROUP : (NUM_FREE_BLOCK_GROUP - 1); // µÚÒ»×éÊÇNUM_FREE_BLOCK_GROUP - 1¸ö
         starti = endi;
         endi = endi + inum;
     }

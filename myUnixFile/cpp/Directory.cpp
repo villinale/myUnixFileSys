@@ -10,22 +10,22 @@ Directory::Directory()
     }
 }
 
-/// @brief æ ¹æ®ç›®å½•ånameå’ŒInodeå·inumberåˆ›å»ºä¸€ä¸ªå­ç›®å½•
-/// @param name å­ç›®å½•å
-/// @param inumber å­ç›®å½•Inodeå·
-/// @return int 0è¡¨ç¤ºæˆåŠŸ,-1è¡¨ç¤ºå¤±è´¥
+/// @brief ¸ù¾İÄ¿Â¼ÃûnameºÍInodeºÅinumber´´½¨Ò»¸ö×ÓÄ¿Â¼
+/// @param name ×ÓÄ¿Â¼Ãû
+/// @param inumber ×ÓÄ¿Â¼InodeºÅ
+/// @return int 0±íÊ¾³É¹¦,-1±íÊ¾Ê§°Ü
 int Directory::mkdir(const char *name, const int inumber)
 {
     if (inumber < 0)
         return -1;
-    bool isFull = true; // æ˜¯å¦å·²ç»æ»¡äº†
-    int iinDir = 0;     // ç©ºé—²çš„ç¬¬ä¸€ä¸ªä½ç½®
+    bool isFull = true; // ÊÇ·ñÒÑ¾­ÂúÁË
+    int iinDir = 0;     // ¿ÕÏĞµÄµÚÒ»¸öÎ»ÖÃ
     for (int i = 0; i < NUM_SUB_DIR; i++)
     {
-        // å¦‚æœæ‰¾åˆ°å¯¹åº”å­ç›®å½•,è¯´æ˜æ–‡ä»¶å·²å­˜åœ¨
+        // Èç¹ûÕÒµ½¶ÔÓ¦×ÓÄ¿Â¼,ËµÃ÷ÎÄ¼şÒÑ´æÔÚ
         if (strcmp(this->d_filename[i], name) == 0)
         {
-            cout << "æ–‡ä»¶å·²å­˜åœ¨!" << endl;
+            cout << "ÎÄ¼şÒÑ´æÔÚ!" << endl;
             throw(EEXIST);
             return -1;
         }
@@ -36,15 +36,15 @@ int Directory::mkdir(const char *name, const int inumber)
         }
     }
 
-    // å¦‚æœç›®å½•å·²æ»¡
+    // Èç¹ûÄ¿Â¼ÒÑÂú
     if (isFull)
     {
-        cout << "ç›®å½•å·²æ»¡!" << endl;
+        cout << "Ä¿Â¼ÒÑÂú!" << endl;
         throw(ENOSPC);
         return -1;
     }
 
-    // å°†å­ç›®å½•åå’ŒInodeå·å†™å…¥ç›®å½•
+    // ½«×ÓÄ¿Â¼ÃûºÍInodeºÅĞ´ÈëÄ¿Â¼
     strcpy(this->d_filename[iinDir], name);
     this->d_inodenumber[iinDir] = inumber;
     return 0;

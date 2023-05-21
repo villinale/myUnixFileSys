@@ -2,8 +2,8 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 21:22:11
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-18 15:24:34
- * @Description: BufferManagerç›¸å…³æ“ä½œ
+ * @LastEditTime: 2023-05-21 21:53:23
+ * @Description: BufferManagerÏà¹Ø²Ù×÷
  */
 #include "../h/header.h"
 #include "../h/errno.h"
@@ -23,49 +23,49 @@ Buf::Buf()
 
 BufferManager::BufferManager()
 {
-    // è‡ªç”±ç¼“å­˜é˜Ÿåˆ—æ§åˆ¶å—ï¼Œå®ç°åŒå‘é“¾è¡¨çš„é“¾æ¥ï¼Œä½†æ˜¯æœ¬èº«æ²¡æœ‰å¯¹åº”çš„ç¼“å†²åŒºæ•°ç»„
-    // ä¸€å¼€å§‹æ•´ä¸ªç¼“å­˜æ§åˆ¶æ•°ç»„å°±æ˜¯ä¸€ä¸ªè‡ªç”±ç¼“å­˜é˜Ÿåˆ—
+    // ×ÔÓÉ»º´æ¶ÓÁĞ¿ØÖÆ¿é£¬ÊµÏÖË«ÏòÁ´±íµÄÁ´½Ó£¬µ«ÊÇ±¾ÉíÃ»ÓĞ¶ÔÓ¦µÄ»º³åÇøÊı×é
+    // Ò»¿ªÊ¼Õû¸ö»º´æ¿ØÖÆÊı×é¾ÍÊÇÒ»¸ö×ÔÓÉ»º´æ¶ÓÁĞ
     this->bFreeList.b_forw = &m_Buf[NUM_BUF - 1];
     this->bFreeList.b_back = &m_Buf[0];
     this->bFreeList.av_forw = &m_Buf[0];
     this->bFreeList.av_back = &m_Buf[NUM_BUF - 1];
 
-    // å¯¹ç¼“å­˜æ§åˆ¶å—æ•°ç»„ä¸­æ¯ä¸€ä¸ªç¼“å­˜å®ç°é“¾æ¥ï¼Œb_flagsã€b_wcountã€b_blknoåœ¨ç¼“å­˜æ„é€ æ—¶å°±å·²æ„é€ 
+    // ¶Ô»º´æ¿ØÖÆ¿éÊı×éÖĞÃ¿Ò»¸ö»º´æÊµÏÖÁ´½Ó£¬b_flags¡¢b_wcount¡¢b_blknoÔÚ»º´æ¹¹ÔìÊ±¾ÍÒÑ¹¹Ôì
     for (auto i = 0; i < NUM_BUF; i++)
     {
         this->m_Buf[i].b_addr = this->Buffer[i];
 
-        // å‰é©±èŠ‚ç‚¹
+        // Ç°Çı½Úµã
         this->m_Buf[i].b_forw = (i - 1 >= 0) ? (&m_Buf[i - 1]) : (&bFreeList);
-        // åç»§èŠ‚ç‚¹
+        // ºó¼Ì½Úµã
         this->m_Buf[i].b_back = (i + 1 < NUM_BUF) ? (&m_Buf[i + 1]) : (&bFreeList);
-        // ä¸Šä¸€ä¸ªç©ºé—²ç¼“å­˜æ§åˆ¶å—çš„æŒ‡é’ˆ
+        // ÉÏÒ»¸ö¿ÕÏĞ»º´æ¿ØÖÆ¿éµÄÖ¸Õë
         this->m_Buf[i].av_forw = (i + 1 < NUM_BUF) ? (&m_Buf[i - 1]) : (&bFreeList);
-        // ä¸‹ä¸€ä¸ªç©ºé—²ç¼“å­˜æ§åˆ¶å—çš„æŒ‡é’ˆ
+        // ÏÂÒ»¸ö¿ÕÏĞ»º´æ¿ØÖÆ¿éµÄÖ¸Õë
         this->m_Buf[i].av_back = (i - 1 >= 0) ? (&m_Buf[i - 1]) : (&bFreeList);
     }
 
-    // è¿›ç¨‹å›¾åƒä¼ é€è¯·æ±‚å—
+    // ½ø³ÌÍ¼Ïñ´«ËÍÇëÇó¿é
     this->SwBuf.b_forw = &SwBuf;
     this->SwBuf.b_back = &SwBuf;
     this->SwBuf.av_forw = &SwBuf;
     this->SwBuf.av_back = &SwBuf;
 
-    // ç£ç›˜è®¾å¤‡è¡¨
+    // ´ÅÅÌÉè±¸±í
     this->devtab.b_forw = &devtab;
     this->devtab.b_back = &devtab;
     this->devtab.av_forw = &devtab;
     this->devtab.av_back = &devtab;
 }
 
-/// @brief ç”³è¯·ç¼“å­˜ï¼Œè€Œä¸”åªä¼šåœ¨Breadä¸­è°ƒç”¨ï¼Œä¸åœ¨Bwriteä¸­è°ƒç”¨ï¼Œå› ä¸ºæ¯æ¬¡å†™éƒ½æ˜¯è¦å…ˆè¯»ï¼Œå†å¯¹è¯»åè·å¾—çš„ç¼“å­˜è¿›è¡Œä¿®æ”¹ï¼Œéå¸¸ç²¾å¦™ï¼ï¼ï¼
-/// @param blkno é€»è¾‘å—å·
-/// @return å¯»æ‰¾åˆ°çš„Buf
+/// @brief ÉêÇë»º´æ£¬¶øÇÒÖ»»áÔÚBreadÖĞµ÷ÓÃ£¬²»ÔÚBwriteÖĞµ÷ÓÃ£¬ÒòÎªÃ¿´ÎĞ´¶¼ÊÇÒªÏÈ¶Á£¬ÔÙ¶Ô¶Áºó»ñµÃµÄ»º´æ½øĞĞĞŞ¸Ä£¬·Ç³£¾«Ãî£¡£¡£¡
+/// @param blkno Âß¼­¿éºÅ
+/// @return Ñ°ÕÒµ½µÄBuf
 Buf *BufferManager::GetBlk(int blkno)
 {
     Buf *bp = NULL;
 
-    // åœ¨è®¾å¤‡é˜Ÿåˆ—ä¸­æ‰¾ä¸blknoç›¸åŒè€…ï¼Œç›´æ¥åˆ©ç”¨
+    // ÔÚÉè±¸¶ÓÁĞÖĞÕÒÓëblknoÏàÍ¬Õß£¬Ö±½ÓÀûÓÃ
     for (bp = this->devtab.b_back; bp != &(this->devtab); bp = bp->b_back)
     {
         if (bp->b_blkno == blkno)
@@ -74,32 +74,32 @@ Buf *BufferManager::GetBlk(int blkno)
         }
     }
 
-    // åœ¨è‡ªç”±é˜Ÿåˆ—ä¸­å¯»æ‰¾
-    // è‡ªç”±é˜Ÿåˆ—ä¸ºç©º
+    // ÔÚ×ÔÓÉ¶ÓÁĞÖĞÑ°ÕÒ
+    // ×ÔÓÉ¶ÓÁĞÎª¿Õ
     if (this->bFreeList.av_forw == &this->bFreeList)
     {
-        // ä¸å¤ªå¯èƒ½ï¼Œå› ä¸ºæ¯æ¬¡éƒ½æ˜¯è®¾å¤‡è¯»å†™ä¹‹åå°±ç«‹å³é‡Šæ”¾å­—ç¬¦å—
+        // ²»Ì«¿ÉÄÜ£¬ÒòÎªÃ¿´Î¶¼ÊÇÉè±¸¶ÁĞ´Ö®ºó¾ÍÁ¢¼´ÊÍ·Å×Ö·û¿é
     }
 
-    // å–å‡ºè‡ªç”±é˜Ÿåˆ—é˜Ÿå¤´
+    // È¡³ö×ÔÓÉ¶ÓÁĞ¶ÓÍ·
     bp = this->bFreeList.av_back;
-    // ä»è‡ªç”±é˜Ÿåˆ—å–å‡º
+    // ´Ó×ÔÓÉ¶ÓÁĞÈ¡³ö
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
-    // ä»åŸè®¾å¤‡é˜Ÿåˆ—æˆ–NODEVé˜Ÿåˆ—å–å‡º
+    // ´ÓÔ­Éè±¸¶ÓÁĞ»òNODEV¶ÓÁĞÈ¡³ö
     bp->b_forw->b_back = bp->b_back;
     bp->b_back->b_forw = bp->b_forw;
 
-    // å¦‚æœè¯¥å­—ç¬¦å—æ˜¯å»¶è¿Ÿå†™ï¼Œå°†å…¶å¼‚æ­¥å†™åˆ°ç£ç›˜ä¸Š
+    // Èç¹û¸Ã×Ö·û¿éÊÇÑÓ³ÙĞ´£¬½«ÆäÒì²½Ğ´µ½´ÅÅÌÉÏ
     if (bp->b_flags & Buf::B_DELWRI)
         this->Bwrite(bp);
 
     bp->b_flags = Buf::B_NONE;
 
-    // ä»åŸè®¾å¤‡é˜Ÿåˆ—ä¸­æŠ½å‡º
+    // ´ÓÔ­Éè±¸¶ÓÁĞÖĞ³é³ö
     bp->b_back->b_forw = bp->b_forw;
     bp->b_forw->b_back = bp->b_back;
-    // åŠ å…¥æ–°çš„è®¾å¤‡é˜Ÿåˆ—
+    // ¼ÓÈëĞÂµÄÉè±¸¶ÓÁĞ
     bp->b_forw = this->devtab.b_forw;
     bp->b_back = &(this->devtab);
     this->devtab.b_forw->b_back = bp;
@@ -109,84 +109,39 @@ Buf *BufferManager::GetBlk(int blkno)
     return bp;
 }
 
-/// @brief å°†å­—ç¬¦å†™åœ¨å¯¹åº”ç›˜å—ä¸­ï¼Œä½†æ˜¯ä¼šæ ‡è®°å»¶è¿Ÿå†™,è¦æ±‚ç›˜å—è¿ç»­
-/// @param buf å­—ç¬¦
-/// @param start_addr èµ·å§‹åœ°å€
-/// @param size å­—ç¬¦æ•°
-void BufferManager::bwrite(const char *buf, unsigned int start_addr, unsigned int size)
-{
-    if (start_addr + size > SIZE_BLOCK * NUM_BLOCK_ALL)
-    {
-        cout << "ç›˜å—å†™å…¥åœ°å€é”™è¯¯" << endl;
-        throw(EFAULT);
-        return;
-    }
-
-    unsigned int pos = 0;
-    unsigned int start_blkno = start_addr / SIZE_BUFFER;
-    unsigned int end_blkno = (start_addr + size - 1) / SIZE_BUFFER;
-    // ä»start_blknoåˆ°end_blknoçš„æ‰€æœ‰å—éƒ½è¦å†™
-    for (unsigned int blkno = start_blkno; blkno <= end_blkno; blkno++)
-    {
-        Buf *bp = Bread(blkno);
-        // åªæœ‰ä¸€ä¸ªå—
-        if (blkno == start_blkno && blkno == end_blkno)
-        {
-            memcpy_s(bp->b_addr + start_addr % SIZE_BUFFER, size, buf + pos, size);
-            pos += size;
-        }
-        else if (blkno == start_blkno) // ç¬¬ä¸€ä¸ªå—
-        {
-            memcpy_s(bp->b_addr + start_addr % SIZE_BUFFER, (SIZE_BUFFER - 1) - (start_addr % SIZE_BUFFER) + 1, buf + pos, (SIZE_BUFFER - 1) - (start_addr % SIZE_BUFFER) + 1);
-            pos += SIZE_BUFFER - (start_addr % SIZE_BUFFER);
-        }
-        else if (blkno == end_blkno) // æœ€åä¸€ä¸ªå—
-        {
-            memcpy_s(bp->b_addr, (start_addr + size - 1) % SIZE_BUFFER - 0 + 1, buf + pos, (start_addr + size - 1) % SIZE_BUFFER - 0 + 1);
-            pos += (start_addr + size - 1) % SIZE_BUFFER - 0 + 1;
-        }
-        else
-        {
-            memcpy_s(bp->b_addr, SIZE_BUFFER, buf + pos, SIZE_BUFFER);
-            pos += SIZE_BUFFER;
-        }
-        bp->b_flags |= Buf::BufFlag::B_DELWRI; // æ ‡è®°ä¸ºå»¶è¿Ÿå†™
-    }
-}
-
-/// @brief å°†ç¼“å­˜å—bpå†™åˆ°ç£ç›˜ä¸Š
-/// @param bp ç¼“å­˜å—
+/// @brief ½«»º´æ¿ébpĞ´µ½´ÅÅÌÉÏ
+/// @param bp »º´æ¿é
 void BufferManager::Bwrite(Buf *bp)
 {
-    // å°†ç¼“å­˜æ”¾å…¥è®¾å¤‡çš„I/Oè¯·æ±‚é˜Ÿåˆ—é˜Ÿå°¾
+    // ½«»º´æ·ÅÈëÉè±¸µÄI/OÇëÇó¶ÓÁĞ¶ÓÎ²
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 
-    // å¼€å§‹å†™æ“ä½œ
+    // ¿ªÊ¼Ğ´²Ù×÷
     bp->b_flags |= Buf::B_WRITE;
     fstream fd;
     fd.open(DISK_PATH, ios::in | ios::out | ios::binary);
     if (!fd.is_open())
     {
-        cout << "æ— æ³•æ‰“å¼€ä¸€çº§ç£ç›˜æ–‡ä»¶myDisk.img" << endl;
+        cout << "ÎŞ·¨´ò¿ªÒ»¼¶´ÅÅÌÎÄ¼şmyDisk.img" << endl;
         throw(ENOENT);
     }
-    // TODOï¼šè¿™é‡Œå¯èƒ½è¦ä¿®æ”¹
-    // è¿™é‡Œæ²¡å¤ªææ‡‚ï¼Œåœ¨ä¸Šå±‚è¿›è¡Œå†™æ“ä½œçš„æ—¶å€™ï¼Œ
-    // æ˜¯å…ˆè¯»ç›˜å—ï¼Œå†å†™ç›˜å—ç›¸å…³å†…å®¹ï¼Œåªä¿®æ”¹ç¼“å­˜ä¸­å†…å®¹ï¼Œæ‰€ä»¥æ˜¯SIZE_BUFFERåœ°å†™
+    // TODO£ºÕâÀï¿ÉÄÜÒªĞŞ¸Ä
+    // ÕâÀïÃ»Ì«¸ã¶®£¬ÔÚÉÏ²ã½øĞĞĞ´²Ù×÷µÄÊ±ºò£¬
+    // ÊÇÏÈ¶ÁÅÌ¿é£¬ÔÙĞ´ÅÌ¿éÏà¹ØÄÚÈİ£¬Ö»ĞŞ¸Ä»º´æÖĞÄÚÈİ£¬ËùÒÔÊÇSIZE_BUFFERµØĞ´
     fd.seekp(streampos(bp->b_blkno) * streampos(SIZE_BUFFER), ios::beg);
     fd.write((const char *)bp->b_addr, SIZE_BUFFER);
     fd.close();
-    // å†™æ“ä½œå®Œæˆ
+    // Ğ´²Ù×÷Íê³É
 
-    // æ›´æ–°æ ‡å¿—
+    // ¸üĞÂ±êÖ¾
     bp->b_flags = Buf::BufFlag::B_DONE;
-    // ä»I/Oè¯·æ±‚é˜Ÿåˆ—å–å‡º
+    // ´ÓI/OÇëÇó¶ÓÁĞÈ¡³ö
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
-    // åŠ å…¥è‡ªç”±é˜Ÿåˆ—
+    // ¼ÓÈë×ÔÓÉ¶ÓÁĞ
     bp->av_forw = (this->bFreeList).av_forw;
     bp->av_back = &((this->bFreeList));
     bp->av_forw->av_back = bp;
@@ -195,68 +150,68 @@ void BufferManager::Bwrite(Buf *bp)
 
 void BufferManager::Bdwrite(Buf *bp)
 {
-    // å°†ç¼“å­˜æ”¾å…¥è®¾å¤‡çš„I/Oè¯·æ±‚é˜Ÿåˆ—é˜Ÿå°¾
+    // ½«»º´æ·ÅÈëÉè±¸µÄI/OÇëÇó¶ÓÁĞ¶ÓÎ²
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 
-    // æ ‡è®°ä¸ºå»¶è¿Ÿå†™
+    // ±ê¼ÇÎªÑÓ³ÙĞ´
     bp->b_flags |= (Buf::B_DELWRI | Buf::B_DONE);
 
-    // ä»I/Oè¯·æ±‚é˜Ÿåˆ—å–å‡º
+    // ´ÓI/OÇëÇó¶ÓÁĞÈ¡³ö
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
-    // åŠ å…¥è‡ªç”±é˜Ÿåˆ—
+    // ¼ÓÈë×ÔÓÉ¶ÓÁĞ
     bp->av_forw = (this->bFreeList).av_forw;
     bp->av_back = &((this->bFreeList));
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 }
 
-/// @brief æ ¹æ®ç‰©ç†è®¾å¤‡å—å·è¯»å–ç¼“å­˜
-/// @param blkno æ‰€è¦è¿›è¡Œè¯»å–çš„ç‰©ç†è®¾å¤‡å—å·
-/// @return  è¿”å›è¯»å–åˆ°çš„ç¼“å­˜å—
+/// @brief ¸ù¾İÎïÀíÉè±¸¿éºÅ¶ÁÈ¡»º´æ
+/// @param blkno ËùÒª½øĞĞ¶ÁÈ¡µÄÎïÀíÉè±¸¿éºÅ
+/// @return  ·µ»Ø¶ÁÈ¡µ½µÄ»º´æ¿é
 Buf *BufferManager::Bread(int blkno)
 {
     Buf *bp;
-    // æ ¹æ®è®¾å¤‡å·ï¼Œå­—ç¬¦å—å·ç”³è¯·ç¼“å­˜
+    // ¸ù¾İÉè±¸ºÅ£¬×Ö·û¿éºÅÉêÇë»º´æ
     bp = this->GetBlk(blkno);
-    // å¦‚æœåœ¨è®¾å¤‡é˜Ÿåˆ—ä¸­æ‰¾åˆ°æ‰€éœ€ç¼“å­˜ï¼Œå³B_DONEå·²è®¾ç½®ï¼Œå°±ä¸éœ€è¿›è¡ŒI/Oæ“ä½œ
+    // Èç¹ûÔÚÉè±¸¶ÓÁĞÖĞÕÒµ½ËùĞè»º´æ£¬¼´B_DONEÒÑÉèÖÃ£¬¾Í²»Ğè½øĞĞI/O²Ù×÷
     if (bp->b_flags & Buf::B_DONE)
     {
         return bp;
     }
 
-    // æ²¡æœ‰æ‰¾åˆ°ç›¸åº”ç¼“å­˜,I/Oè¯»æ“ä½œï¼Œé€å…¥I/Oè¯·æ±‚é˜Ÿåˆ—
+    // Ã»ÓĞÕÒµ½ÏàÓ¦»º´æ,I/O¶Á²Ù×÷£¬ËÍÈëI/OÇëÇó¶ÓÁĞ
     bp->b_flags |= Buf::B_READ;
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 
-    // å¼€å§‹è¯»æ“ä½œ
+    // ¿ªÊ¼¶Á²Ù×÷
     fstream fin;
     fin.open(DISK_PATH, ios::in | ios::binary);
     if (!fin.is_open())
     {
-        cout << "æ— æ³•æ‰“å¼€ä¸€çº§ç£ç›˜æ–‡ä»¶myDisk.img" << endl;
+        cout << "ÎŞ·¨´ò¿ªÒ»¼¶´ÅÅÌÎÄ¼şmyDisk.img" << endl;
         throw(ENOENT);
         return NULL;
     }
-    // TODO:ä¹Ÿæ²¡å¤ªææ‡‚ä¸ºå•¥è¦è¯»SIZE_BUFFERå­—èŠ‚
+    // TODO:Ò²Ã»Ì«¸ã¶®ÎªÉ¶Òª¶ÁSIZE_BUFFER×Ö½Ú
     fin.seekg(streampos(blkno) * streampos(SIZE_BUFFER), ios::beg);
     fin.read(bp->b_addr, SIZE_BUFFER);
     fin.close();
 
-    // è¯»æ“ä½œå®Œæˆ
-    // æ›´æ–°æ ‡å¿—
+    // ¶Á²Ù×÷Íê³É
+    // ¸üĞÂ±êÖ¾
     bp->b_flags = Buf::BufFlag::B_DONE;
 
-    // ä»I/Oè¯·æ±‚é˜Ÿåˆ—å–å‡º
+    // ´ÓI/OÇëÇó¶ÓÁĞÈ¡³ö
     bp->av_forw->av_back = bp->av_back;
     bp->av_back->av_forw = bp->av_forw;
-    // åŠ å…¥è‡ªç”±é˜Ÿåˆ—é˜Ÿå°¾
+    // ¼ÓÈë×ÔÓÉ¶ÓÁĞ¶ÓÎ²
     bp->av_forw = this->bFreeList.av_forw;
     bp->av_back = &(this->bFreeList);
     bp->av_forw->av_back = bp;
@@ -265,21 +220,21 @@ Buf *BufferManager::Bread(int blkno)
     return bp;
 }
 
-/// @brief å¯¹ç£ç›˜è¿›è¡Œè¯»æ“ä½œ,ä½†æ˜¯è®¾ç½®äº†ç›˜å—å·ã€åç§»é‡å’Œè¯»å–å¤§å°
-/// @param buf      è¯»å–çš„æ•°æ®å­˜æ”¾çš„ä½ç½®
-/// @param blkno    æ‰€è¦è¿›è¡Œè¯»å–çš„è®¾å¤‡å—å·
-/// @param offset   è¯»å–çš„èµ·å§‹ä½ç½®
-/// @param size     è¯»å–çš„å¤§å°
+/// @brief ¶Ô´ÅÅÌ½øĞĞ¶Á²Ù×÷,µ«ÊÇÉèÖÃÁËÅÌ¿éºÅ¡¢Æ«ÒÆÁ¿ºÍ¶ÁÈ¡´óĞ¡
+/// @param buf      ¶ÁÈ¡µÄÊı¾İ´æ·ÅµÄÎ»ÖÃ
+/// @param blkno    ËùÒª½øĞĞ¶ÁÈ¡µÄÉè±¸¿éºÅ
+/// @param offset   ¶ÁÈ¡µÄÆğÊ¼Î»ÖÃ
+/// @param size     ¶ÁÈ¡µÄ´óĞ¡
 void BufferManager::Bread(char *buf, int blkno, int offset, int size)
 {
     if (offset + size > SIZE_BUFFER)
     {
-        cout << "è¯»å–çš„å¤§å°è¶…è¿‡äº†ä¸€ä¸ªç›˜å—çš„å¤§å°" << endl;
+        cout << "¶ÁÈ¡µÄ´óĞ¡³¬¹ıÁËÒ»¸öÅÌ¿éµÄ´óĞ¡" << endl;
         throw(EOVERFLOW);
     }
     if (buf == nullptr)
     {
-        cout << "è¯»å–çš„ç¼“å†²åŒºä¸ºç©º" << endl;
+        cout << "¶ÁÈ¡µÄ»º³åÇøÎª¿Õ" << endl;
         throw(EINVAL);
     }
     Buf *bp;

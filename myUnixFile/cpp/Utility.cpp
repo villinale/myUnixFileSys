@@ -3,13 +3,13 @@
  * @Date: 2023-05-14 11:37:44
  * @LastEditors: yingxin wang
  * @LastEditTime: 2023-05-21 20:26:24
- * @Description: è¯·å¡«å†™ç®€ä»‹
+ * @Description: ÇëÌîĞ´¼ò½é
  */
 #include "../h/Utility.h"
 
-/// @brief å°†char*è½¬æ¢ä¸ºDirectory*
-/// @param ch è¦è½¬æ¢çš„å­—ç¬¦
-/// @return Directory* è½¬æ¢åçš„DirectoryæŒ‡é’ˆ
+/// @brief ½«char*×ª»»ÎªDirectory*
+/// @param ch Òª×ª»»µÄ×Ö·û
+/// @return Directory* ×ª»»ºóµÄDirectoryÖ¸Õë
 Directory *char2Directory(char *ch)
 {
     try
@@ -23,7 +23,7 @@ Directory *char2Directory(char *ch)
     }
 }
 
-// å°†char*è½¬æ¢ä¸ºSuperBlock*
+// ½«char*×ª»»ÎªSuperBlock*
 SuperBlock *char2SuperBlock(char *ch)
 {
     try
@@ -50,9 +50,9 @@ UserTable *char2UserTable(char *ch)
     }
 }
 
-/// @brief å°†Directory*è½¬æ¢ä¸ºchar*
-/// @param dir è¦è½¬æ¢çš„DirectoryæŒ‡é’ˆ
-/// @return char* è½¬æ¢åçš„å­—ç¬¦
+/// @brief ½«Directory*×ª»»Îªchar*
+/// @param dir Òª×ª»»µÄDirectoryÖ¸Õë
+/// @return char* ×ª»»ºóµÄ×Ö·û
 char *directory2Char(Directory *dir)
 {
     try
@@ -81,7 +81,7 @@ char *uintArray2Char(unsigned int *arr, int len)
     }
 }
 
-// å°†UserTable*è½¬æ¢ä¸ºchar*
+// ½«UserTable*×ª»»Îªchar*
 char *userTable2Char(UserTable *user)
 {
     try
@@ -95,9 +95,9 @@ char *userTable2Char(UserTable *user)
     }
 }
 
-/// @brief å°†char*è½¬æ¢ä¸ºDiskInode*
-/// @param ch è¦è½¬æ¢çš„å­—ç¬¦
-/// @return DiskInode* è½¬æ¢åçš„DiskInodeæŒ‡é’ˆ
+/// @brief ½«char*×ª»»ÎªDiskInode*
+/// @param ch Òª×ª»»µÄ×Ö·û
+/// @return DiskInode* ×ª»»ºóµÄDiskInodeÖ¸Õë
 DiskInode *char2DiskInode(char *ch)
 {
     try
@@ -111,10 +111,10 @@ DiskInode *char2DiskInode(char *ch)
     }
 }
 
-/// @brief å°†å­—ç¬¦ä¸²æŒ‰ç…§åˆ†éš”ç¬¦åˆ†å‰²
-/// @param strIn  è¦åˆ†å‰²çš„å­—ç¬¦ä¸²
-/// @param delim  åˆ†éš”ç¬¦
-/// @return  vector<string> åˆ†å‰²åçš„å­—ç¬¦ä¸²æ•°ç»„
+/// @brief ½«×Ö·û´®°´ÕÕ·Ö¸ô·û·Ö¸î
+/// @param strIn  Òª·Ö¸îµÄ×Ö·û´®
+/// @param delim  ·Ö¸ô·û
+/// @return  vector<string> ·Ö¸îºóµÄ×Ö·û´®Êı×é
 vector<string> stringSplit(const string &strIn, char delim)
 {
     char *str = const_cast<char *>(strIn.c_str());

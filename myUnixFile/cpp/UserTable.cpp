@@ -63,7 +63,6 @@ void UserTable::AddUser(const short id, const char *name, const char *password, 
 			this->u_id[i] = i;
 			this->u_gid[i] = givengid;
 			cout << "创建成功!" << endl;
-			throw(EUSERS);
 			return;
 		}
 	}

@@ -61,7 +61,7 @@ static const unsigned int POSITION_USER = POSITION_BLOCK + 1;
 // BufferManager缓存控制块、缓冲区的数量
 static const int NUM_BUF = 15;
 // BufferManager缓冲区大小。 以字节为单位
-static const int SIZE_BUFFER = 512;
+static const int SIZE_BUFFER = SIZE_BLOCK;
 
 // 规定：根目录在数据区的第一个Block中
 // Directory中一个目录下子目录文件名最大长度
@@ -102,6 +102,23 @@ public:
 	short GetGId(const short id);
 
 	short FindUser(const char *name, const char *password);
+};
+
+/*
+ * 目录Directory类
+ * 该结构实现了树形带交叉勾连的目录结构
+ * 一个Directory类就一个BLOCK大小
+ */
+class Directory
+{
+public:
+	int d_inodenumber[NUM_SUB_DIR];				 // 子目录Inode号
+	char d_filename[NUM_SUB_DIR][NUM_FILE_NAME]; // 子目录文件名
+
+	Directory();
+
+	// 根据目录名name和Inode号inumber给当前目录创建一个子目录
+	int mkdir(const char* name, const int inumber);
 };
 
 /*
@@ -263,23 +280,6 @@ public:
 };
 
 /*
- * 目录Directory类
- * 该结构实现了树形带交叉勾连的目录结构
- * 一个Directory类就一个BLOCK大小
- */
-class Directory
-{
-public:
-	int d_inodenumber[NUM_SUB_DIR];				 // 子目录Inode号
-	char d_filename[NUM_SUB_DIR][NUM_FILE_NAME]; // 子目录文件名
-
-	Directory();
-
-	// 根据目录名name和Inode号inumber给当前目录创建一个子目录
-	int mkdir(const char *name, const int inumber);
-};
-
-/*
  * 缓存控制块管理类BufferManager定义
  */
 class BufferManager
@@ -304,7 +304,7 @@ public:
 	void Bdwrite(Buf *bp);
 
 	// 一步一步延迟写
-	void bwrite(const char *buf, unsigned int start_addr, unsigned int size);
+	// void bwrite(const char *buf, unsigned int start_addr, unsigned int size);
 
 	// 根据物理设备块号读取缓存
 	Buf *Bread(int blkno);
@@ -352,6 +352,8 @@ private:
 
 	// 分配空闲打开文件控制块File结构
 	File *FAlloc();
+
+	void WriteSpb();
 
 public:
 	enum FileMode

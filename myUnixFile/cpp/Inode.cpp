@@ -3,7 +3,7 @@
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
  * @LastEditTime: 2023-05-21 21:39:00
- * @Description: Inodeç±»ç›¸å…³æ“ä½œ
+ * @Description: InodeÀàÏà¹Ø²Ù×÷
  */
 
 #include "../h/header.h"
@@ -27,48 +27,48 @@ Inode::Inode()
     }
 }
 
-/// @brief      å°†é€»è¾‘å—å·lbnæ˜ å°„åˆ°ç‰©ç†ç›˜å—å·phyBlkno
-/// @param lbn  é€»è¾‘å—å·lbnï¼ŒæŒ‡çš„æ˜¯åœ¨i_addr[]ä¸­çš„ç´¢å¼•
-/// @return int è¿”å›žç‰©ç†ç›˜å—å·phyBlkno
+/// @brief      ½«Âß¼­¿éºÅlbnÓ³Éäµ½ÎïÀíÅÌ¿éºÅphyBlkno
+/// @param lbn  Âß¼­¿éºÅlbn£¬Ö¸µÄÊÇÔÚi_addr[]ÖÐµÄË÷Òý
+/// @return int ·µ»ØÎïÀíÅÌ¿éºÅphyBlkno
 int Inode::Bmap(int lbn)
 {
     /*
-     * MyFileManagerçš„æ–‡ä»¶ç´¢å¼•ç»“æž„ï¼š(å°åž‹ã€å¤§åž‹æ–‡ä»¶)
-     * (1) i_addr[0] - i_addr[9]ä¸ºç›´æŽ¥ç´¢å¼•è¡¨ï¼Œæ–‡ä»¶é•¿åº¦èŒƒå›´æ˜¯0 ~ 9ä¸ªç›˜å—
+     * MyFileManagerµÄÎÄ¼þË÷Òý½á¹¹£º(Ð¡ÐÍ¡¢´óÐÍÎÄ¼þ)
+     * (1) i_addr[0] - i_addr[9]ÎªÖ±½ÓË÷Òý±í£¬ÎÄ¼þ³¤¶È·¶Î§ÊÇ0 ~ 9¸öÅÌ¿é
      */
 
     Buf *pFirstBuf;
-    int phyBlkno = this->i_addr[lbn]; // è½¬æ¢åŽçš„ç‰©ç†ç›˜å—å·
+    int phyBlkno = this->i_addr[lbn]; // ×ª»»ºóµÄÎïÀíÅÌ¿éºÅ
     BufferManager *bufMgr = fs.GetBufferManager();
 
     /*
-     * å¦‚æžœè¯¥é€»è¾‘å—å·è¿˜æ²¡æœ‰ç›¸åº”çš„ç‰©ç†ç›˜å—å·ä¸Žä¹‹å¯¹åº”ï¼Œåˆ™åˆ†é…ä¸€ä¸ªç‰©ç†å—ã€‚
-     * è¿™é€šå¸¸å‘ç”Ÿåœ¨å¯¹æ–‡ä»¶çš„å†™å…¥ï¼Œå½“å†™å…¥ä½ç½®è¶…å‡ºæ–‡ä»¶å¤§å°ï¼Œå³å¯¹å½“å‰
-     * æ–‡ä»¶è¿›è¡Œæ‰©å……å†™å…¥ï¼Œå°±éœ€è¦åˆ†é…é¢å¤–çš„ç£ç›˜å—ï¼Œå¹¶ä¸ºä¹‹å»ºç«‹é€»è¾‘å—å·
-     * ä¸Žç‰©ç†ç›˜å—å·ä¹‹é—´çš„æ˜ å°„ã€‚
+     * Èç¹û¸ÃÂß¼­¿éºÅ»¹Ã»ÓÐÏàÓ¦µÄÎïÀíÅÌ¿éºÅÓëÖ®¶ÔÓ¦£¬Ôò·ÖÅäÒ»¸öÎïÀí¿é¡£
+     * ÕâÍ¨³£·¢ÉúÔÚ¶ÔÎÄ¼þµÄÐ´Èë£¬µ±Ð´ÈëÎ»ÖÃ³¬³öÎÄ¼þ´óÐ¡£¬¼´¶Ôµ±Ç°
+     * ÎÄ¼þ½øÐÐÀ©³äÐ´Èë£¬¾ÍÐèÒª·ÖÅä¶îÍâµÄ´ÅÅÌ¿é£¬²¢ÎªÖ®½¨Á¢Âß¼­¿éºÅ
+     * ÓëÎïÀíÅÌ¿éºÅÖ®¼äµÄÓ³Éä¡£
      */
     if (phyBlkno == 0 && (pFirstBuf = fs.Alloc()) != NULL)
     {
         /*
-         * å› ä¸ºåŽé¢å¾ˆå¯èƒ½é©¬ä¸Šè¿˜è¦ç”¨åˆ°æ­¤å¤„æ–°åˆ†é…çš„æ•°æ®å—ï¼Œæ‰€ä»¥ä¸æ€¥äºŽç«‹åˆ»è¾“å‡ºåˆ°
-         * ç£ç›˜ä¸Šï¼›è€Œæ˜¯å°†ç¼“å­˜æ ‡è®°ä¸ºå»¶è¿Ÿå†™æ–¹å¼ï¼Œè¿™æ ·å¯ä»¥å‡å°‘ç³»ç»Ÿçš„I/Oæ“ä½œã€‚
-         * è¿™é‡Œå¥½åŽ‰å®³ï¼ï¼ï¼
+         * ÒòÎªºóÃæºÜ¿ÉÄÜÂíÉÏ»¹ÒªÓÃµ½´Ë´¦ÐÂ·ÖÅäµÄÊý¾Ý¿é£¬ËùÒÔ²»¼±ÓÚÁ¢¿ÌÊä³öµ½
+         * ´ÅÅÌÉÏ£»¶øÊÇ½«»º´æ±ê¼ÇÎªÑÓ³ÙÐ´·½Ê½£¬ÕâÑù¿ÉÒÔ¼õÉÙÏµÍ³µÄI/O²Ù×÷¡£
+         * ÕâÀïºÃÀ÷º¦£¡£¡£¡
          */
         bufMgr->Bdwrite(pFirstBuf);
         phyBlkno = pFirstBuf->b_blkno;
-        /* å°†é€»è¾‘å—å·lbnæ˜ å°„åˆ°ç‰©ç†ç›˜å—å·phyBlkno */
+        /* ½«Âß¼­¿éºÅlbnÓ³Éäµ½ÎïÀíÅÌ¿éºÅphyBlkno */
         this->i_addr[lbn] = phyBlkno;
     }
 
     return phyBlkno;
 }
 
-/// @brief     æ ¹æ®ç¼“å­˜å†…å®¹bpå°†å¤–å­˜Inodeè¯»å–æ•°æ®åˆ°å†…å­˜Inode
-/// @param bp  ç¼“å†²åŒºæŒ‡é’ˆ
-/// @param inumber  å¤–å­˜Inodeç¼–å·
+/// @brief     ¸ù¾Ý»º´æÄÚÈÝbp½«Íâ´æInode¶ÁÈ¡Êý¾Ýµ½ÄÚ´æInode
+/// @param bp  »º³åÇøÖ¸Õë
+/// @param inumber  Íâ´æInode±àºÅ
 void Inode::ICopy(Buf *bp, int inumber)
 {
-    // ä»Žå¤–å­˜Inodeè¯»å–æ•°æ®åˆ°å†…å­˜Inode
+    // ´ÓÍâ´æInode¶ÁÈ¡Êý¾Ýµ½ÄÚ´æInode
     DiskInode *dp;
 
     int offset = ((inumber - 1) % NUM_INODE_PER_BLOCK) * sizeof(DiskInode);
@@ -85,18 +85,18 @@ void Inode::ICopy(Buf *bp, int inumber)
         this->i_addr[i] = dp->d_addr[i];
 }
 
-/// @brief æ ¹æ®è§„åˆ™ç»™å†…å­˜Inodeèµ‹äºˆæ–‡ä»¶æƒé™
-/// @return unsigned short è¿”å›žæ–‡ä»¶æƒé™
+/// @brief ¸ù¾Ý¹æÔò¸øÄÚ´æInode¸³ÓèÎÄ¼þÈ¨ÏÞ
+/// @return unsigned short ·µ»ØÎÄ¼þÈ¨ÏÞ
 unsigned short Inode::AssignMode(short id, short gid)
 {
     return 0;
 }
 
-/// @brief æ¸…ç©ºInodeå†…å®¹
-/// è¿™é‡Œæœ‰æ„æ€çš„æ˜¯æºç ï¼Œæœ‰å¾ˆå¤šä¸œè¥¿å¹¶æ²¡æœ‰è¢«æ¸…é™¤ï¼Œæ¯”å¦‚i_numberï¼Œi_countç­‰ç­‰
-/// ä½†æ˜¯åœ¨åšçš„æ—¶å€™å‘çŽ°å¾ˆæœ‰é“ç†ï¼
-/// TODO:å…¶å®žå¹¶æ²¡æœ‰çœ‹æ‡‚ï¼Œä½†æ˜¯è¿˜æ²¡æœ‰çœ‹æ‡‚,å¤§æ¦‚æ˜¯å› ä¸ºè°ƒç”¨å®ƒçš„å‡½æ•°Iputåªæœ‰åœ¨this->i_count = 1æ—¶æ‰ä¼šè°ƒç”¨å®ƒ
-/// å¹¶ä¸”åœ¨è°ƒç”¨åŽä¼šæŠŠthis->i_count--
+/// @brief Çå¿ÕInodeÄÚÈÝ
+/// ÕâÀïÓÐÒâË¼µÄÊÇÔ´Âë£¬ÓÐºÜ¶à¶«Î÷²¢Ã»ÓÐ±»Çå³ý£¬±ÈÈçi_number£¬i_countµÈµÈ
+/// µ«ÊÇÔÚ×öµÄÊ±ºò·¢ÏÖºÜÓÐµÀÀí£¡
+/// TODO:ÆäÊµ²¢Ã»ÓÐ¿´¶®£¬µ«ÊÇ»¹Ã»ÓÐ¿´¶®,´ó¸ÅÊÇÒòÎªµ÷ÓÃËüµÄº¯ÊýIputÖ»ÓÐÔÚthis->i_count = 1Ê±²Å»áµ÷ÓÃËü
+/// ²¢ÇÒÔÚµ÷ÓÃºó»á°Ñthis->i_count--
 void Inode::Clean()
 {
     this->i_mode = 0;
@@ -112,19 +112,19 @@ void Inode::Clean()
     }
 }
 
-/// @brief å°†å†…å­˜Inodeæ›´æ–°åˆ°å¤–å­˜ä¸­
+/// @brief ½«ÄÚ´æInode¸üÐÂµ½Íâ´æÖÐ
 void Inode::WriteI()
 {
     Buf *bp;
 
     BufferManager *bufMgr = fs.GetBufferManager();
 
-    // ä»Žç£ç›˜è¯»å–ç£ç›˜Inode
+    // ´Ó´ÅÅÌ¶ÁÈ¡´ÅÅÌInode
     bp = bufMgr->Bread(POSITION_DISKINODE + (this->i_number - 1) / NUM_INODE_PER_BLOCK);
     int offset = ((this->i_number - 1) % NUM_INODE_PER_BLOCK) * sizeof(DiskInode);
 
     DiskInode *dp = new DiskInode;
-    // å°†å†…å­˜Inodeå¤åˆ¶åˆ°ç£ç›˜Inodeä¸­
+    // ½«ÄÚ´æInode¸´ÖÆµ½´ÅÅÌInodeÖÐ
     dp->d_mode = this->i_mode;
     dp->d_nlink = this->i_nlink;
     dp->d_uid = this->i_uid;
@@ -138,28 +138,28 @@ void Inode::WriteI()
     bufMgr->Bwrite(bp);
 }
 
-/// @brief èŽ·å–çˆ¶ç›®å½•inodenumber
-/// @return int è¿”å›žçˆ¶ç›®å½•çš„inodenumber
+/// @brief »ñÈ¡¸¸Ä¿Â¼inodenumber
+/// @return int ·µ»Ø¸¸Ä¿Â¼µÄinodenumber
 int Inode::GetParentInumber()
 {
-    // éžç›®å½•æ–‡ä»¶ä¹Ÿä¸æ˜¯ä¸èƒ½èŽ·å–çˆ¶ç›®å½•ï¼Œä½†æ˜¯ä¸ä¼šè°ƒç”¨è¿™ä¸ªå‡½æ•°
+    // ·ÇÄ¿Â¼ÎÄ¼þÒ²²»ÊÇ²»ÄÜ»ñÈ¡¸¸Ä¿Â¼£¬µ«ÊÇ²»»áµ÷ÓÃÕâ¸öº¯Êý
     if (!(this->i_mode & Inode::INodeMode::IDIR))
         return NULL;
 
     BufferManager *bufMgr = fs.GetBufferManager();
 
-    // å…ˆèŽ·å–æœ¬ç›®å½•çš„ç›®å½•é¡¹ï¼Œå®ƒå­˜æœ‰çˆ¶ç›®å½•ä½ç½®
+    // ÏÈ»ñÈ¡±¾Ä¿Â¼µÄÄ¿Â¼Ïî£¬Ëü´æÓÐ¸¸Ä¿Â¼Î»ÖÃ
     Buf *bp = bufMgr->Bread(this->i_addr[0]);
     Directory *dir = char2Directory(bp->b_addr);
 
     return dir->d_inodenumber[1];
 }
 
-/// @brief èŽ·å–ç›®å½•å†…å®¹
-/// @return Directory* è¿”å›žç›®å½•å†…å®¹
+/// @brief »ñÈ¡Ä¿Â¼ÄÚÈÝ
+/// @return Directory* ·µ»ØÄ¿Â¼ÄÚÈÝ
 Directory *Inode::GetDir()
 {
-    // éžç›®å½•æ–‡ä»¶ä¸èƒ½èŽ·å–ç›®å½•å†…å®¹
+    // ·ÇÄ¿Â¼ÎÄ¼þ²»ÄÜ»ñÈ¡Ä¿Â¼ÄÚÈÝ
     if (!(this->i_mode & Inode::INodeMode::IDIR))
         return NULL;
 

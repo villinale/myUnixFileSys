@@ -3,7 +3,7 @@
  * @Date: 2023-05-18 16:12:47
  * @LastEditors: yingxin wang
  * @LastEditTime: 2023-05-18 16:12:58
- * @Description: è¯·å¡«å†™ç®€ä»‹
+ * @Description: ÇëÌîÐ´¼ò½é
  */
 #include "../h/header.h"
 #include "../h/errno.h"
