@@ -550,7 +550,7 @@ Directory FileSystem::getDir()
 /// @param fp 文件指针
 /// @param buffer 读取内容索要存放的字符串
 /// @param count  读取的字节数
-void FileSystem::fread(File* fp, char* buffer, int count)
+void FileSystem::fread(File* fp, char*& buffer, int count)
 {
 	if (fp == NULL)
 	{
@@ -570,7 +570,7 @@ void FileSystem::fread(File* fp, char* buffer, int count)
 	// 获取文件的Inode
 	Inode* pInode = fp->f_inode;
 	if (count > 0)
-		buffer = new char(count+2);
+		buffer = new char[count];
 	else
 	{
 		buffer = NULL;

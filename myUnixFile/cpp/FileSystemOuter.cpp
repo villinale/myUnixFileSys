@@ -286,11 +286,10 @@ void FileSystem::printFile(string path)
         cout << "为空!" << endl;
         return;
     }
-
     cout << "文件内容为:" << endl;
     for (int i = 0; i < count; i++)
-        cout << buffer + count ;
-    cout << endl;
+        cout << *(buffer + i) ;
+    cout << endl << "文件结束!" << endl;
 }
 
 void FileSystem::writeFile(string path, int offset, int mode)
