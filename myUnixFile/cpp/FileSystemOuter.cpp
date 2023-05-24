@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-24 11:09:29
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 16:30:57
+ * @LastEditTime: 2023-05-24 16:45:53
  * @Description: 请填写简介
  */
 /*
@@ -54,7 +54,7 @@ void FileSystem::cd(string subname)
             return;
 
         int id = this->curDir.find_last_of('/');
-        if (id == 0)//说明这是根目录下的子目录
+        if (id == 0) // 说明这是根目录下的子目录
             this->curDir = "/";
         else
             this->curDir = this->curDir.substr(0, this->curDir.find_last_of('/'));
@@ -140,9 +140,12 @@ void FileSystem::rmdir(string subname)
         }
     }
 
-    // 删除子目录,其实只是unlink
+    // 删除子目录inode,其实只是unlink
     pDeleteInode->i_nlink--;
     this->IPut(pDeleteInode); // 当i_nlink为0时，会释放Inode
+
+    // 删除父目录下的子目录项
+    dir->deletei(i);
 }
 
 /// @brief 初始化系统，用于已有磁盘文件的情况

@@ -119,6 +119,9 @@ public:
 
 	// 根据目录名name和Inode号inumber给当前目录创建一个子目录
 	int mkdir(const char *name, const int inumber);
+
+	// 清除目录中的第iloc个子目录
+	void deletei(int iloc);
 };
 
 /*
