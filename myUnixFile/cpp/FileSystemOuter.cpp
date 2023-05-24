@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-24 11:09:29
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 15:05:22
+ * @LastEditTime: 2023-05-24 16:30:57
  * @Description: 请填写简介
  */
 /*
@@ -40,6 +40,7 @@ void FileSystem::ls()
             break;
         cout << dir->d_filename[i] << "\t";
     }
+    cout << endl;
 }
 
 /// @brief 打开子目录
@@ -52,11 +53,17 @@ void FileSystem::cd(string subname)
         if (this->curDir == "/") // 根目录情况
             return;
 
-        this->curDir = this->curDir.substr(0, this->curDir.find_last_of('/'));
+        int id = this->curDir.find_last_of('/');
+        if (id == 0)//说明这是根目录下的子目录
+            this->curDir = "/";
+        else
+            this->curDir = this->curDir.substr(0, this->curDir.find_last_of('/'));
 
         this->IPut(this->curDirInode); // 释放当前目录的Inode
         // 回退父目录的Inode
         this->curDirInode = this->IGet(this->curDirInode->GetParentInumber());
+
+        return;
     }
     else if (subname == ".") // 当前目录情况
     {
@@ -78,7 +85,7 @@ void FileSystem::cd(string subname)
         cout << "目录不存在!" << endl;
         return;
     }
-    if (this->curDirInode == this->rootDirInode)//root目录只增加子目录名
+    if (this->curDirInode == this->rootDirInode) // root目录只增加子目录名
         this->curDir += subname;
     else
         this->curDir += "/" + subname;
@@ -124,7 +131,7 @@ void FileSystem::rmdir(string subname)
         return;
     }
     Directory *deletedir = pDeleteInode->GetDir();
-    for (int i = 1; i < NUM_SUB_DIR; i++)
+    for (int i = 2; i < NUM_SUB_DIR; i++) // 从第3个目录项开始，所有目录项的前两个都是自己和父亲
     {
         if (deletedir->d_inodenumber[i] != 0)
         {
@@ -240,8 +247,7 @@ void FileSystem::fun()
     string strIn;
     while (true)
     {
-        cout << endl
-             << this->curName << this->curDir << ">";
+        cout << this->curName << this->curDir << ">";
         getline(cin, strIn);
         input = stringSplit(strIn, ' ');
         if (input.size() == 0)
