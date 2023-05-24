@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:31:20
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 14:55:40
+ * @LastEditTime: 2023-05-24 19:37:14
  * @Description: FileSystem内部调用的各个函数内容
  */
 #include "../h/header.h"
@@ -94,7 +94,7 @@ Inode *FileSystem::NameI(string path)
     bool isFind = false;
 
     // 第一个字符为/表示绝对路径
-    if (path[0] == '/') // 从根目录开始查找
+    if (path.size() != 0 && path[0] == '/') // 从根目录开始查找
         pInode = this->rootDirInode;
     else // 相对路径的查找
         pInode = this->curDirInode;
@@ -102,6 +102,7 @@ Inode *FileSystem::NameI(string path)
     while (true)
     {
         isFind = false;
+        // 包含path为空的情况
         if (ipaths == paths.size()) // 这种情况说明找到了对应的文件或目录
             break;
         else if (ipaths >= paths.size())
@@ -190,6 +191,17 @@ int FileSystem::Access(Inode *pInode, unsigned int mode)
         return pInode->i_mode & Inode::INodeMode::OTHER_R;
     else
         return 0;
+}
+
+/// @brief 获取绝对路径，假设路径正确
+/// @param path 相对路径或绝对路径
+/// @return string 绝对路径
+string FileSystem::GetAbsolutionPath(string path)
+{
+    if (path[0] == '/')
+        return path;
+    else
+        return this->curDir + path;
 }
 
 /// @brief 分配空闲数据盘块

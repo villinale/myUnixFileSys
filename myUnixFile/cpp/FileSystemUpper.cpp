@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 17:16:16
+ * @LastEditTime: 2023-05-24 19:35:59
  * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
@@ -26,6 +26,12 @@ int FileSystem::fcreate(string path)
 	{
 		cout << "文件名过长!" << endl;
 		throw(ENAMETOOLONG);
+		return -1;
+	}
+	else if (name.size() == 0)
+	{
+		cout << "文件名不能为空!" << endl;
+		throw(EINVAL);
 		return -1;
 	}
 
@@ -145,6 +151,12 @@ int FileSystem::mkdir(string path)
 	{
 		cout << "新建目录名过长!" << endl;
 		throw(ENAMETOOLONG);
+		return -1;
+	}
+	else if (name.size() == 0)
+	{
+		cout << "新建目录名不能为空!" << endl;
+		throw(EINVAL);
 		return -1;
 	}
 
@@ -338,7 +350,7 @@ void FileSystem::fformat()
 	// 创建并写入用户表
 	this->fcreate("/etc/userTable.txt");
 	int filoc = fopen("/etc/userTable.txt");
-	File *userTableFile =& this->openFileTable[filoc];
+	File *userTableFile = &this->openFileTable[filoc];
 	this->fwrite(userTable2Char(this->userTable), sizeof(UserTable), userTableFile); // 需要全部写入
 	this->fclose(userTableFile);
 }
@@ -387,6 +399,9 @@ int FileSystem::fopen(string path)
 	pFile->f_offset = 0;
 	pFile->f_uid = this->curId;
 	pFile->f_gid = this->userTable->GetGId(this->curId);
+
+	// 修改访问时间
+	pinode->i_atime = unsigned int(time(NULL));
 
 	return fileloc;
 }

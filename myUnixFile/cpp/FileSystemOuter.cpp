@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 19:12:31
+ * @LastEditTime: 2023-05-24 20:12:17
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -13,16 +13,19 @@
 void FileSystem::help()
 {
     // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
+    printf("下列命令中带'<>'的项是必须的，带'[]'的项是可选择的\n");
     printf("--------------目录相关---------------\n");
-    printf("ls                     查看当前目录下的子目录\n");
-    printf("cd <dir-name>          打开名称为dir-name的子目录\n");
-    printf("mkdir <dir-name>       创建名称为dir-name的子目录\n");
-    printf("rmdir <dir-name>       删除名称为dir-name的子目录\n");
+    printf("ls                                查看当前目录下的子目录\n");
+    printf("cd <dir-name>                     打开在当前目录下名称为dir-name的子目录\n");
+    printf("mkdir <dir-name>                  创建在当前目录下名称为dir-name的子目录\n");
+    printf("rmdir <dir-name>                  删除在当前目录下名称为dir-name的子目录\n");
     printf("--------------文件相关---------------\n");
-    printf("open <file-path>       打开路径为file-path的文件\n");
-    printf("                       支持以/开头的从根目录打开 与 不以/开头的从当前目录打开\n");
-    printf("close <file-path>      关闭路径为file-path的文件\n");
-    printf("open <file-path>       打开路径为file-path的文件\n");
+    printf("touch <file-name>                 在当前目录下创建名称为file-name的文件\n");
+    printf("open <file-name>                  打开当前目录里名称为file-name的文件\n");
+    printf("close <file-name>                 关闭当前目录里名称为file-name的文件\n");
+    printf("write <file-name> [offset]        在当前目录里名称为file-name的文件里,选择从offset位置开始写入\n");
+    printf("                                  offset可选,默认从文件开始位置写入\n");
+    printf("                                  输入后进入写入模式,输入写入内容,按ESC键表示结束\n");
 
     printf("----------------其他----------------\n");
     printf("fformat             格式化文件系统\n");
@@ -132,7 +135,7 @@ void FileSystem::cd(string subname)
         cout << "目录不存在!" << endl;
         return;
     }
-    this->curDir += subname+ "/" ;
+    this->curDir += subname + "/";
     this->curDirInode = this->IGet(dir->d_inodenumber[i]);
 }
 
@@ -203,17 +206,96 @@ void FileSystem::mkdirout(string subname)
     }
 
     // 普通情况，创建子目录
-    int res = this->mkdir(this->curDir+subname);
+    int res = this->mkdir(this->curDir + subname);
 }
 
 void FileSystem::openFile(string path)
 {
     int fd = this->fopen(path);
     if (fd == -1)
+    {
+        cout << "打开文件失败!" << endl;
         return;
+    }
     else
-        this->openFileMap[path] = fd;
-    // File *fp =
+    {
+        this->openFileMap[this->GetAbsolutionPath(path)] = fd;
+        cout << "成功打开文件!" << endl;
+    }
+}
+
+void FileSystem::closeFile(string path)
+{
+    int fd = this->openFileMap[this->GetAbsolutionPath(path)];
+    if (fd == -1)
+    {
+        cout << "文件未打开!" << endl;
+        return;
+    }
+    else
+    {
+        this->fclose(&(this->openFileTable[fd]));
+        this->openFileMap.erase(this->GetAbsolutionPath(path));
+        cout << "成功关闭文件!" << endl;
+    }
+}
+
+void FileSystem::createFile(string path)
+{
+    if (path.find_first_of("/") != -1)
+    {
+        cout << "文件名不能包含'/'!" << endl;
+        return;
+    }
+    if (path == "." || path == "..")
+    {
+        cout << "文件名不规范!" << endl;
+        return;
+    }
+
+    int res = this->fcreate(path);
+}
+
+void FileSystem::writeFile(string path, int offset)
+{
+    int fd = this->openFileMap[this->GetAbsolutionPath(path)];
+    if (fd == -1)
+    {
+        cout << "文件未打开!请先使用open指令打开文件" << endl;
+        return;
+    }
+
+    cout << "开始输入字符(按ESC键退出):" << endl;
+    string input;
+    int i = 0;
+    while (true)
+    {
+        if (_kbhit())
+        {                       // 检查是否有按键按下
+            char ch = _getch(); // 获取单个字符输入
+
+            if (ch == 27)
+            {          // 检查是否按下 ESC 键
+                break; // 退出循环
+            }
+
+            if (ch == '\r')
+            {                  // 检查是否输入回车符
+                input += '\n'; // 将回车符转换为换行符并添加到输入字符串中
+                cout << endl;  // 输出换行符
+            }
+            else
+            {
+                input += ch; // 将字符添加到输入字符串中
+                cout << ch;  // 显示当前输入的字符
+            }
+            i++;
+        }
+    }
+    cout << "本次输入字符个数：" << i << endl;
+
+    cout << endl
+         << "输入的字符：" << input << endl;
 }
 
 void FileSystem::login()
@@ -240,7 +322,8 @@ void FileSystem::login()
         else
             break;
     }
-    cout << "登陆成功!" << endl << endl;
+    cout << "登陆成功!" << endl
+         << endl;
     this->curId = id;
     this->curName = name;
 }
@@ -265,7 +348,8 @@ void FileSystem::fun()
 {
     this->login();
 
-    cout << "输入help可以查看命令清单" << endl << endl;
+    cout << "输入help可以查看命令清单" << endl
+         << endl;
     vector<string> input;
     string strIn;
     while (true)
@@ -278,19 +362,79 @@ void FileSystem::fun()
 
         try
         {
+            if (input.size() < 1)
+                continue;
+
             // 目录管理
             if (input[0] == "ls") // 查看子目录
                 this->ls();
             else if (input[0] == "cd") // 进入子目录
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
                 this->cd(input[1]);
+            }
             else if (input[0] == "rmdir") // 删除子目录
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
                 this->rmdir(input[1]);
+            }
             else if (input[0] == "mkdir")
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
                 this->mkdirout(input[1]);
+            }
+
             // 文件管理
+            else if (input[0] == "touch")
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->createFile(input[1]);
+            }
             else if (input[0] == "open")
             {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->openFile(input[1]);
             }
+            else if (input[0] == "close")
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->closeFile(input[1]);
+            }
+            else if (input[0] == "write")
+            {
+                if (input.size() < 2 || input.size() > 3)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                int offset = input.size() == 3 ? atoi(input[2].c_str()) : 0;
+                this->writeFile(input[1], offset);
+            }
+
             else if (input[0] == "format")
             {
                 this->format();
@@ -303,6 +447,10 @@ void FileSystem::fun()
             {
                 this->exit();
                 break;
+            }
+            else
+            {
+                cout << "指令不存在，请通过help查阅支持功能" << endl;
             }
         }
         catch (int &e)

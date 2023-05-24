@@ -9,6 +9,7 @@
 #define ROOT_DIR_INUMBER 1
 
 #include <iostream>
+#include <conio.h>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -360,9 +361,14 @@ private:
 	// 分配空闲打开文件控制块File结构
 	File *FAlloc(int &iloc);
 
+	// 将superblock更新到外存中
 	void WriteSpb();
 
+	// 根据Inode号释放Inode
 	void IFree(int number);
+
+	// 获取绝对路径，假设路径正确
+	string GetAbsolutionPath(string path);
 
 public:
 	enum FileMode
@@ -417,6 +423,10 @@ public:
 	void mkdirout(string subname);
 
 	void openFile(string path);
+	void createFile(string path);
+	void closeFile(string path);
+	void writeFile(string path, int offset);
+
 	void help();
 	void format();
 	void login();
