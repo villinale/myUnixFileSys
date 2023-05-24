@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 15:03:03
+ * @LastEditTime: 2023-05-24 19:12:31
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -14,9 +14,10 @@ void FileSystem::help()
 {
     // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
     printf("--------------目录相关---------------\n");
-    printf("ls                     查看子目录\n");
-    printf("cd <dir-name>          打开名字为dir-name的子目录\n");
-    printf("rmdir <dir-name>       删除名字为dir-name的子目录\n");
+    printf("ls                     查看当前目录下的子目录\n");
+    printf("cd <dir-name>          打开名称为dir-name的子目录\n");
+    printf("mkdir <dir-name>       创建名称为dir-name的子目录\n");
+    printf("rmdir <dir-name>       删除名称为dir-name的子目录\n");
     printf("--------------文件相关---------------\n");
     printf("open <file-path>       打开路径为file-path的文件\n");
     printf("                       支持以/开头的从根目录打开 与 不以/开头的从当前目录打开\n");
@@ -131,10 +132,7 @@ void FileSystem::cd(string subname)
         cout << "目录不存在!" << endl;
         return;
     }
-    if (this->curDirInode == this->rootDirInode) // root目录只增加子目录名
-        this->curDir += subname;
-    else
-        this->curDir += "/" + subname;
+    this->curDir += subname+ "/" ;
     this->curDirInode = this->IGet(dir->d_inodenumber[i]);
 }
 
@@ -194,10 +192,28 @@ void FileSystem::rmdir(string subname)
     dir->deletei(i);
 }
 
+/// @brief 创建子目录
+/// @param subname 子目录名称
+void FileSystem::mkdirout(string subname)
+{
+    if (subname.find_first_of("/") != -1)
+    {
+        cout << "目录名不能包含'/'!" << endl;
+        return;
+    }
+
+    // 普通情况，创建子目录
+    int res = this->mkdir(this->curDir+subname);
+}
+
 void FileSystem::openFile(string path)
 {
     int fd = this->fopen(path);
-    //File *fp =
+    if (fd == -1)
+        return;
+    else
+        this->openFileMap[path] = fd;
+    // File *fp =
 }
 
 void FileSystem::login()
@@ -207,9 +223,9 @@ void FileSystem::login()
     while (true)
     {
         cout << "请输入用户名:";
-        cin >> name;
+        getline(cin, name);
         cout << "请输入密码:";
-        cin >> pswd;
+        getline(cin, pswd);
         if (name.empty() || pswd.empty())
         {
             cout << "输入非法!" << endl;
@@ -224,7 +240,7 @@ void FileSystem::login()
         else
             break;
     }
-    cout << "登陆成功!" << endl;
+    cout << "登陆成功!" << endl << endl;
     this->curId = id;
     this->curName = name;
 }
@@ -249,7 +265,7 @@ void FileSystem::fun()
 {
     this->login();
 
-    cout << "输入help可以查看命令清单" << endl;
+    cout << "输入help可以查看命令清单" << endl << endl;
     vector<string> input;
     string strIn;
     while (true)
@@ -269,6 +285,8 @@ void FileSystem::fun()
                 this->cd(input[1]);
             else if (input[0] == "rmdir") // 删除子目录
                 this->rmdir(input[1]);
+            else if (input[0] == "mkdir")
+                this->mkdirout(input[1]);
             // 文件管理
             else if (input[0] == "open")
             {

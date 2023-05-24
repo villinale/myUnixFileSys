@@ -12,6 +12,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <map>
 #include "errno.h"
 using namespace std;
 
@@ -337,6 +338,7 @@ private:
 	Inode inodeTable[NUM_INODE];  // 内存Inode表
 	Inode *curDirInode;			  // 指向当前目录的Inode指针
 	Inode *rootDirInode;		  // 根目录内存Inode
+	map<string, int> openFileMap; // 打开文件表的map，用于快速查找
 
 	// 根据path获取Inode
 	Inode *NameI(string path);
@@ -412,6 +414,7 @@ public:
 	void ls();
 	void cd(string subname);
 	void rmdir(string subname);
+	void mkdirout(string subname);
 
 	void openFile(string path);
 	void help();
