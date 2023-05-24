@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 19:35:59
+ * @LastEditTime: 2023-05-24 20:26:08
  * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
@@ -120,8 +120,9 @@ int FileSystem::fcreate(string path)
 
 	// 将文件写入目录项中
 	fatherDir->mkdir(name.c_str(), newinode->i_number);
-	// 将父目录写回磁盘中，因为一个目录项就是一个盘块大小，直接修改了b_addr，其实并不安全
-	fatherBuf->b_addr = directory2Char(fatherDir);
+	// 将父目录写回磁盘中，因为一个目录项就是一个盘块大小，直接修改了b_addr，其实并不安全，
+	//果然有问题啊这句话！！！！fatherBuf->b_addr = directory2Char(fatherDir);
+	memcpy(fatherBuf->b_addr, directory2Char(fatherDir), sizeof(Directory));
 	this->bufManager->Bwrite(fatherBuf);
 	// this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));
 
@@ -199,18 +200,18 @@ int FileSystem::mkdir(string path)
 	// 读取磁盘的数据
 	Buf *fatherBuf = this->bufManager->Bread(blkno);
 	// 将数据转为目录结构
-	Directory *fatherDir = char2Directory(fatherBuf->b_addr);
+	Directory fatherDir = *char2Directory(fatherBuf->b_addr);
 	// 循环查找目录中的每个元素
 	for (int i = 0; i < NUM_SUB_DIR; i++)
 	{
 		// 如果找到对应子目录
-		if (name == fatherDir->d_filename[i])
+		if (name == fatherDir.d_filename[i])
 		{
 			cout << "文件已存在!" << endl;
 			throw(EEXIST);
 			return -1;
 		}
-		if (isFull && fatherDir->d_inodenumber[i] == 0)
+		if (isFull && fatherDir.d_inodenumber[i] == 0)
 		{
 			isFull = false;
 		}
@@ -238,20 +239,20 @@ int FileSystem::mkdir(string path)
 	newinode->i_mtime = unsigned int(time(NULL));
 	newinode->i_atime = unsigned int(time(NULL));
 	// 给新文件夹添加两个目录项
-	Directory *newDir = new Directory();
-	newDir->mkdir(".", newinode->i_number);		// 创建自己
-	newDir->mkdir("..", fatherInode->i_number); // 创建父亲
+	Directory newDir;
+	newDir.mkdir(".", newinode->i_number);		// 创建自己
+	newDir.mkdir("..", fatherInode->i_number); // 创建父亲
 	// 跟新文件夹分配数据盘块号
 	Buf *newBuf = this->Alloc();
-	newBuf->b_addr = directory2Char(newDir);
+	memcpy(newBuf->b_addr, directory2Char(&newDir), sizeof(Directory));
 	newinode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2; // 新文件夹大小是两个目录项
 	newinode->i_addr[0] = newBuf->b_blkno;
 	// delete newDir;
 
 	// 将新文件夹写入其父亲的目录项中
-	fatherDir->mkdir(name.c_str(), newinode->i_number);
+	fatherDir.mkdir(name.c_str(), newinode->i_number);
 	fatherInode->i_size += sizeof(Directory) / NUM_SUB_DIR; // 父亲的大小增加一个目录项
-	fatherBuf->b_addr = directory2Char(fatherDir);
+	memcpy(fatherBuf->b_addr, directory2Char(&fatherDir), sizeof(Directory));
 
 	// 统一写回：父目录inode，新目录inode，父目录数据块、新目录数据块
 	fatherInode->WriteI();
@@ -325,14 +326,15 @@ void FileSystem::fformat()
 	this->rootDirInode->i_atime = unsigned int(time(NULL));
 	this->curDirInode = this->rootDirInode;
 	// 分配一个数据盘块存放根目录内容
-	Directory *rootDir = new Directory();
-	rootDir->mkdir(".", this->rootDirInode->i_number);	// 创建自己
-	rootDir->mkdir("..", this->rootDirInode->i_number); // 创建父亲，根目录的父亲就是自己，这也是为什么不能直接调用mkdir函数的原因
+	Directory rootDir;
+	rootDir.mkdir(".", this->rootDirInode->i_number);	// 创建自己
+	rootDir.mkdir("..", this->rootDirInode->i_number); // 创建父亲，根目录的父亲就是自己，这也是为什么不能直接调用mkdir函数的原因
 	this->curDir = "/";
 
 	// 跟root文件夹分配数据盘块号并且写回磁盘数据区中
 	Buf *newBuf = this->Alloc();
-	newBuf->b_addr = directory2Char(rootDir);
+	memcpy(newBuf->b_addr, directory2Char(&rootDir), sizeof(Directory));
+	//newBuf->b_addr = directory2Char(&rootDir); 这一句出大乱子，改变了newBuf->b_addr指向的位置，它本应指向budmanager->Buffer中的一个
 	this->bufManager->Bwrite(newBuf);
 	// 给Inode写回数据区位置
 	this->rootDirInode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2;
@@ -412,7 +414,6 @@ int FileSystem::fopen(string path)
 /// @param fp 文件指针
 void FileSystem::fwrite(const char *buffer, int count, File *fp)
 {
-	cout << *buffer << endl;
 	if (fp == NULL)
 	{
 		cout << "文件指针为空!" << endl;
@@ -487,6 +488,39 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 		pInode->i_size = fp->f_offset;
 }
 
+/// @brief 移动文件指针
+/// @param fp 文件指针
+/// @param offset 偏移量
+/// @param mode 移动方式,SEEK_SET,SEEK_CUR,SEEK_END
+/// @return int 移动成功为0，否则为-1
+int FileSystem::fseek(File *fp, int offset, int mode)
+{
+	if (SEEK_SET == mode) // 从文件头开始
+	{
+		if (offset >= 0 && offset <= fp->f_inode->i_size)
+			fp->f_offset = offset;
+		else
+			return -1;
+	}
+	else if (SEEK_CUR == mode) // 从当前位置开始
+	{
+		if (offset >= 0 && (fp->f_offset + offset) >= 0)
+			fp->f_offset += offset;
+		else
+			return -1;
+	}
+	else if (SEEK_END == mode) // 从文件尾开始
+	{
+		if (offset >= 0 && (fp->f_inode->i_size - 1 + offset) >= 0)
+			fp->f_offset = fp->f_inode->i_size - 1 + offset;
+		else
+			return -1;
+	}
+	else
+		return -1;
+	return 0;
+}
+
 // 根据fd关闭文件
 void FileSystem::fclose(File *fp)
 {
@@ -516,7 +550,7 @@ Directory FileSystem::getDir()
 /// @param fp 文件指针
 /// @param buffer 读取内容索要存放的字符串
 /// @param count  读取的字节数
-void FileSystem::fread(File *fp, char *buffer, int count)
+void FileSystem::fread(File* fp, char* buffer, int count)
 {
 	if (fp == NULL)
 	{
@@ -534,8 +568,14 @@ void FileSystem::fread(File *fp, char *buffer, int count)
 	}
 
 	// 获取文件的Inode
-	Inode *pInode = fp->f_inode;
-	buffer = new char(count);
+	Inode* pInode = fp->f_inode;
+	if (count > 0)
+		buffer = new char(count+2);
+	else
+	{
+		buffer = NULL;
+		return;
+	}
 	int pos = 0; // 已经读取的字节数
 	while (pos < count)
 	{
@@ -550,7 +590,7 @@ void FileSystem::fread(File *fp, char *buffer, int count)
 		if (size > count - pos)
 			size = count - pos; // 修正读取的大小
 
-		Buf *pBuf = this->bufManager->Bread(blkno);
+		Buf* pBuf = this->bufManager->Bread(blkno);
 		// TODO:如有大文件这里需要改
 		memcpy(buffer + pos, pBuf->b_addr + startpos % SIZE_BLOCK, size);
 		pos += size;

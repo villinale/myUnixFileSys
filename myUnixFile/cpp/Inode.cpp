@@ -116,7 +116,6 @@ void Inode::Clean()
 void Inode::WriteI()
 {
     Buf *bp;
-
     BufferManager *bufMgr = fs.GetBufferManager();
 
     // ¥”¥≈≈Ã∂¡»°¥≈≈ÃInode

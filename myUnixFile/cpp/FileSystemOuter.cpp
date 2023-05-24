@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 20:12:17
+ * @LastEditTime: 2023-05-24 20:46:40
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -15,17 +15,19 @@ void FileSystem::help()
     // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
     printf("下列命令中带'<>'的项是必须的，带'[]'的项是可选择的\n");
     printf("--------------目录相关---------------\n");
-    printf("ls                                查看当前目录下的子目录\n");
-    printf("cd <dir-name>                     打开在当前目录下名称为dir-name的子目录\n");
-    printf("mkdir <dir-name>                  创建在当前目录下名称为dir-name的子目录\n");
-    printf("rmdir <dir-name>                  删除在当前目录下名称为dir-name的子目录\n");
+    printf("ls                                      查看当前目录下的子目录\n");
+    printf("cd <dir-name>                           打开在当前目录下名称为dir-name的子目录\n");
+    printf("mkdir <dir-name>                        创建在当前目录下名称为dir-name的子目录\n");
+    printf("rmdir <dir-name>                        删除在当前目录下名称为dir-name的子目录\n");
     printf("--------------文件相关---------------\n");
-    printf("touch <file-name>                 在当前目录下创建名称为file-name的文件\n");
-    printf("open <file-name>                  打开当前目录里名称为file-name的文件\n");
-    printf("close <file-name>                 关闭当前目录里名称为file-name的文件\n");
-    printf("write <file-name> [offset]        在当前目录里名称为file-name的文件里,选择从offset位置开始写入\n");
-    printf("                                  offset可选,默认从文件开始位置写入\n");
-    printf("                                  输入后进入写入模式,输入写入内容,按ESC键表示结束\n");
+    printf("touch <file-name>                       在当前目录下创建名称为file-name的文件\n");
+    printf("open <file-name>                        打开当前目录里名称为file-name的文件\n");
+    printf("close <file-name>                       关闭当前目录里名称为file-name的文件\n");
+    printf("print <file-name>                       读取并打印当前目录里名称为file-name的文件内容\n");
+    printf("write <file-name> [offset] [mode]       在当前目录里名称为file-name的文件里,选择从offset位置开始写入\n");
+    printf("                                        offset可选,输入整数,表示偏移量\n");
+    printf("                                        mode可选,有三种模式:0表示从文件头+offset位置开始写,1表示从文件指针位置+offset开始写,2表示从文件尾-offset开始写,默认从头开始写\n");
+    printf("                                        输入后进入写入模式,输入写入内容,按ESC键表示结束\n");
 
     printf("----------------其他----------------\n");
     printf("fformat             格式化文件系统\n");
@@ -122,13 +124,20 @@ void FileSystem::cd(string subname)
 
     // 普通情况，进入子文件夹中
     Directory *dir = this->curDirInode->GetDir();
+    Inode *pInode = NULL;
     int i;
     for (i = 0; i < NUM_SUB_DIR; i++)
     {
         if (dir->d_inodenumber[i] == 0)
             continue;
         if (strcmp(dir->d_filename[i], subname.c_str()) == 0)
-            break;
+        {
+            pInode = this->IGet(dir->d_inodenumber[i]);
+            if (pInode->i_mode & Inode::INodeMode::IFILE)
+                continue;
+            else if (pInode->i_mode & Inode::INodeMode::IDIR)
+                break;
+        }
     }
     if (i == NUM_SUB_DIR)
     {
@@ -219,7 +228,7 @@ void FileSystem::openFile(string path)
     }
     else
     {
-        this->openFileMap[this->GetAbsolutionPath(path)] = fd;
+        this->openFileMap[this->GetAbsolutionPath(path)] = fd + 1;
         cout << "成功打开文件!" << endl;
     }
 }
@@ -256,12 +265,53 @@ void FileSystem::createFile(string path)
     int res = this->fcreate(path);
 }
 
-void FileSystem::writeFile(string path, int offset)
+void FileSystem::printFile(string path)
 {
     int fd = this->openFileMap[this->GetAbsolutionPath(path)];
-    if (fd == -1)
+    if (fd == 0)
     {
         cout << "文件未打开!请先使用open指令打开文件" << endl;
+        return;
+    }
+
+    File* fp = &(this->openFileTable[fd - 1]);
+    char* buffer = NULL;
+    int count = fp->f_inode->i_size;
+    int oldoffset = fp->f_offset;//记录旧的文件指针位置
+    fp->f_offset = 0;
+    this->fread(fp, buffer, count);
+    fp->f_offset = oldoffset;
+    if (buffer == NULL)
+    {
+        cout << "为空!" << endl;
+        return;
+    }
+
+    cout << "文件内容为:" << endl;
+    for (int i = 0; i < count; i++)
+        cout << buffer + count ;
+    cout << endl;
+}
+
+void FileSystem::writeFile(string path, int offset, int mode)
+{
+    int fd = this->openFileMap[this->GetAbsolutionPath(path)];
+    if (fd == 0)
+    {
+        cout << "文件未打开!请先使用open指令打开文件" << endl;
+        return;
+    }
+
+    File *fp = &(this->openFileTable[fd - 1]);
+    if (this->Access(fp->f_inode, FileMode::WRITE) == 0)
+    {
+        cout << "文件没有写权限!" << endl;
+        return;
+    }
+
+    if (this->fseek(fp, offset, mode) == -1)
+    {
+        cout << "文件指针移动失败!" << endl;
         return;
     }
 
@@ -294,8 +344,7 @@ void FileSystem::writeFile(string path, int offset)
     }
     cout << "本次输入字符个数：" << i << endl;
 
-    cout << endl
-         << "输入的字符：" << input << endl;
+    this->fwrite(input.c_str(), input.size(), fp);
 }
 
 void FileSystem::login()
@@ -367,7 +416,14 @@ void FileSystem::fun()
 
             // 目录管理
             if (input[0] == "ls") // 查看子目录
+            {
+                if (input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
                 this->ls();
+            }
             else if (input[0] == "cd") // 进入子目录
             {
                 if (input.size() < 2 || input.size() > 2)
@@ -426,13 +482,23 @@ void FileSystem::fun()
             }
             else if (input[0] == "write")
             {
-                if (input.size() < 2 || input.size() > 3)
+                if (input.size() < 2 || input.size() > 4)
                 {
                     cout << "输入非法!" << endl;
                     continue;
                 }
                 int offset = input.size() == 3 ? atoi(input[2].c_str()) : 0;
-                this->writeFile(input[1], offset);
+                int mode = input.size() == 4 ? atoi(input[3].c_str()) : 0;
+                this->writeFile(input[1], offset, mode);
+            }
+            else if (input[0] == "print")
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->printFile(input[1]);
             }
 
             else if (input[0] == "format")

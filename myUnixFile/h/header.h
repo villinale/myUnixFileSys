@@ -339,7 +339,7 @@ private:
 	Inode inodeTable[NUM_INODE];  // 内存Inode表
 	Inode *curDirInode;			  // 指向当前目录的Inode指针
 	Inode *rootDirInode;		  // 根目录内存Inode
-	map<string, int> openFileMap; // 打开文件表的map，用于快速查找
+	map<string, int> openFileMap; // 打开文件表的map，用于快速查找,从是文件打开类在openFileTable的位置+1
 
 	// 根据path获取Inode
 	Inode *NameI(string path);
@@ -410,6 +410,8 @@ public:
 	void fclose(File *fp);
 	// 写文件
 	void fwrite(const char *buffer, int count, File *fp);
+	// 移动文件指针
+	int fseek(File *fp, int offset, int mode);
 
 	Directory getDir();
 
@@ -425,7 +427,8 @@ public:
 	void openFile(string path);
 	void createFile(string path);
 	void closeFile(string path);
-	void writeFile(string path, int offset);
+	void writeFile(string path, int offset, int mode);
+	void printFile(string path);
 
 	void help();
 	void format();

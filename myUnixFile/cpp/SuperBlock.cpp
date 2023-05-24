@@ -65,6 +65,6 @@ void SuperBlock::Init()
         starti = endi;
         endi = endi + inum;
 
-        delete stack;
+        delete[] stack;
     }
 }

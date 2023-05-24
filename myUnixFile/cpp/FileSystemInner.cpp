@@ -88,7 +88,6 @@ Inode *FileSystem::NameI(string path)
 {
     Inode *pInode;
     Buf *pbuf;
-    Directory dir;
     vector<string> paths = stringSplit(path, '/'); // 所以要求文件夹和文件的名中不能出现"/"
     int ipaths = 0;
     bool isFind = false;
@@ -98,6 +97,8 @@ Inode *FileSystem::NameI(string path)
         pInode = this->rootDirInode;
     else // 相对路径的查找
         pInode = this->curDirInode;
+    int blkno = pInode->Bmap(0);
+    // 读取磁盘的数据
 
     while (true)
     {
@@ -369,7 +370,7 @@ void FileSystem::Free(int blkno)
         stack[0] = this->spb->s_nfree;                                       // 第一位是链接的上一组的盘块个数
         for (int i = 0; i < NUM_FREE_BLOCK_GROUP; i++)
             stack[i + 1] = this->spb->s_free[i];
-        pBuf->b_addr = uintArray2Char(stack, NUM_FREE_BLOCK_GROUP + 1);
+        memcpy(pBuf->b_addr, uintArray2Char(stack, NUM_FREE_BLOCK_GROUP + 1), sizeof(int)* NUM_FREE_BLOCK_GROUP + 1);
         bufManager->Bwrite(pBuf);
 
         this->spb->s_nfree = 0;
