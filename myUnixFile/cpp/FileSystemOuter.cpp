@@ -129,6 +129,11 @@ void FileSystem::login()
         cin >> name;
         cout << "请输入密码:";
         cin >> pswd;
+        if (name.empty() || pswd.empty())
+        {
+            cout << "输入非法!" << endl;
+            continue;
+        }
         id = this->userTable->FindUser(name.c_str(), pswd.c_str());
         if (id == -1)
         {

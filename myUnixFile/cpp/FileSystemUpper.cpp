@@ -234,6 +234,7 @@ int FileSystem::mkdir(string path)
 	newBuf->b_addr = directory2Char(newDir);
 	newinode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2; // 新文件夹大小是两个目录项
 	newinode->i_addr[0] = newBuf->b_blkno;
+	delete newDir;
 
 	// 将新文件夹写入其父亲的目录项中
 	fatherDir->mkdir(name.c_str(), newinode->i_number);
@@ -323,6 +324,7 @@ void FileSystem::fformat()
 	// 给Inode写回数据区位置
 	this->rootDirInode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2;
 	this->rootDirInode->i_addr[0] = newBuf->b_blkno;
+	delete rootDir;
 
 	// 根据要求添加目录
 	this->mkdir("/bin");
@@ -338,8 +340,10 @@ void FileSystem::fformat()
 	// 创建并写入用户表
 	this->fcreate("/etc/userTable.txt");
 	File *userTableFile = fopen("/etc/userTable.txt");
-	this->fwrite(userTable2Char(this->userTable), sizeof(userTable), userTableFile);
+	this->fwrite(userTable2Char(this->userTable), sizeof(UserTable), userTableFile);//需要全部写入
 	this->fclose(userTableFile);
+
+	fd.close();
 }
 
 /// @brief 打开文件
@@ -395,6 +399,7 @@ File *FileSystem::fopen(string path)
 /// @param fp 文件指针
 void FileSystem::fwrite(const char *buffer, int count, File *fp)
 {
+	cout << *buffer << endl;
 	if (fp == NULL)
 	{
 		cout << "文件指针为空!" << endl;
@@ -538,4 +543,15 @@ void FileSystem::fread(File *fp, char *buffer, int count)
 		pos += size;
 		fp->f_offset += size;
 	}
+	delete buffer;
+}
+
+FileSystem::~FileSystem()
+{
+	this->exit();
+	delete this->bufManager;
+	delete this->spb;
+	delete this->userTable;
+	delete this->curDirInode;
+	delete this->rootDirInode;
 }

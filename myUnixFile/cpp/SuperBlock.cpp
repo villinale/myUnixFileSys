@@ -63,5 +63,7 @@ void SuperBlock::Init()
         inum = (i != (numgroup-1)) ? NUM_FREE_BLOCK_GROUP : (NUM_FREE_BLOCK_GROUP - 1); // 第一组是NUM_FREE_BLOCK_GROUP - 1个
         starti = endi;
         endi = endi + inum;
+
+        delete stack;
     }
 }

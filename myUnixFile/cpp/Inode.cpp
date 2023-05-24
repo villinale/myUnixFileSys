@@ -136,6 +136,7 @@ void Inode::WriteI()
         dp->d_addr[i] = this->i_addr[i];
     memcpy(bp->b_addr + offset, dp, SIZE_DISKINODE);
     bufMgr->Bwrite(bp);
+    delete dp;
 }
 
 /// @brief »ñÈ¡¸¸Ä¿Â¼inodenumber

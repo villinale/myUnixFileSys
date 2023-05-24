@@ -19,10 +19,12 @@ int main()
 	{
 		printf("文件系统不存在，正在进行初始化\n");
 		fs.fformat();
+		fs.exit();
 	}
 	else
 	{
 		cout << "文件系统已存在，正在加载" << endl;
+		//fs.fformat();
 		fs.init();
 	}
 

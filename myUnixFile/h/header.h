@@ -364,6 +364,7 @@ public:
 	};
 
 	FileSystem();
+	~FileSystem();
 
 	BufferManager *GetBufferManager()
 	{
