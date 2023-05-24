@@ -1,12 +1,5 @@
 /*
  * @Author: yingxin wang
- * @Date: 2023-05-24 11:09:29
- * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 16:45:53
- * @Description: 请填写简介
- */
-/*
- * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
  * @LastEditTime: 2023-05-24 15:03:03
@@ -20,13 +13,66 @@
 void FileSystem::help()
 {
     // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
-    cout << "命令                  说明" << endl;
-    printf("----------目录相关----------\n");
-    printf("ls                  查看子目录\n");
-    printf("cd <dir-name>       打开名字为dir-name的子目录\n");
-    printf("rmdir <dir-name>    删除名字为dir-name的子目录\n");
-    printf("------------其他-----------\n");
+    printf("--------------目录相关---------------\n");
+    printf("ls                     查看子目录\n");
+    printf("cd <dir-name>          打开名字为dir-name的子目录\n");
+    printf("rmdir <dir-name>       删除名字为dir-name的子目录\n");
+    printf("--------------文件相关---------------\n");
+    printf("open <file-path>       打开路径为file-path的文件\n");
+    printf("                       支持以/开头的从根目录打开 与 不以/开头的从当前目录打开\n");
+    printf("close <file-path>      关闭路径为file-path的文件\n");
+    printf("open <file-path>       打开路径为file-path的文件\n");
+
+    printf("----------------其他----------------\n");
     printf("fformat             格式化文件系统\n");
+}
+
+/// @brief 初始化系统，用于已有磁盘文件的情况
+void FileSystem::init()
+{
+    fstream fd(DISK_PATH, ios::out | ios::in | ios::binary);
+    // 如果没有打开文件则输出提示信息并throw错误
+    if (!fd.is_open())
+    {
+        cout << "无法打开一级文件myDisk.img" << endl;
+        throw(errno);
+    }
+    fd.close();
+
+    // 对缓存相关内容进行初始化
+    this->bufManager = new BufferManager();
+
+    // 读取超级块
+    Buf *buf = this->bufManager->Bread(POSITION_SUPERBLOCK);
+    this->spb = char2SuperBlock(buf->b_addr);
+
+    // 读取根目录Inode
+    buf = this->bufManager->Bread(POSITION_DISKINODE);
+    this->rootDirInode = this->IAlloc();
+    this->rootDirInode->ICopy(buf, ROOT_DIR_INUMBER);
+    this->curDirInode = this->rootDirInode;
+    this->curId = ROOT_ID; // 先这样初始化
+    this->curDir = "/";
+
+    // 读取用户信息表
+    // 不能直接调用this->fopen，因为userTable本身还没有初始化
+    Inode *pinode = this->NameI("/etc/userTable.txt");
+    // 没有找到相应的Inode
+    if (pinode == NULL)
+    {
+        cout << "没有找到/etc/userTable.txt!" << endl;
+        throw(ENOENT);
+        return;
+    }
+    // 如果找到，判断所要找的文件是不是文件类型
+    if (!(pinode->i_mode & Inode::INodeMode::IFILE))
+    {
+        cout << "不是一个正确的/etc/userTable.txt文件!" << endl;
+        throw(ENOTDIR);
+        return;
+    }
+    Buf *bp = this->bufManager->Bread(pinode->Bmap(0)); // userTable.txt文件本身只占一个盘块大小
+    this->userTable = char2UserTable(bp->b_addr);
 }
 
 /// @brief 列目录
@@ -148,52 +194,10 @@ void FileSystem::rmdir(string subname)
     dir->deletei(i);
 }
 
-/// @brief 初始化系统，用于已有磁盘文件的情况
-void FileSystem::init()
+void FileSystem::openFile(string path)
 {
-    fstream fd(DISK_PATH, ios::out | ios::in | ios::binary);
-    // 如果没有打开文件则输出提示信息并throw错误
-    if (!fd.is_open())
-    {
-        cout << "无法打开一级文件myDisk.img" << endl;
-        throw(errno);
-    }
-    fd.close();
-
-    // 对缓存相关内容进行初始化
-    this->bufManager = new BufferManager();
-
-    // 读取超级块
-    Buf *buf = this->bufManager->Bread(POSITION_SUPERBLOCK);
-    this->spb = char2SuperBlock(buf->b_addr);
-
-    // 读取根目录Inode
-    buf = this->bufManager->Bread(POSITION_DISKINODE);
-    this->rootDirInode = this->IAlloc();
-    this->rootDirInode->ICopy(buf, ROOT_DIR_INUMBER);
-    this->curDirInode = this->rootDirInode;
-    this->curId = ROOT_ID; // 先这样初始化
-    this->curDir = "/";
-
-    // 读取用户信息表
-    // 不能直接调用this->fopen，因为userTable本身还没有初始化
-    Inode *pinode = this->NameI("/etc/userTable.txt");
-    // 没有找到相应的Inode
-    if (pinode == NULL)
-    {
-        cout << "没有找到/etc/userTable.txt!" << endl;
-        throw(ENOENT);
-        return;
-    }
-    // 如果找到，判断所要找的文件是不是文件类型
-    if (!(pinode->i_mode & Inode::INodeMode::IFILE))
-    {
-        cout << "不是一个正确的/etc/userTable.txt文件!" << endl;
-        throw(ENOTDIR);
-        return;
-    }
-    Buf *bp = this->bufManager->Bread(pinode->Bmap(0)); // userTable.txt文件本身只占一个盘块大小
-    this->userTable = char2UserTable(bp->b_addr);
+    int fd = this->fopen(path);
+    //File *fp =
 }
 
 void FileSystem::login()
@@ -256,26 +260,38 @@ void FileSystem::fun()
         if (input.size() == 0)
             continue;
 
-        // 目录管理
-        if (input[0] == "ls") // 查看子目录
-            this->ls();
-        else if (input[0] == "cd") // 进入子目录
-            this->cd(input[1]);
-        else if (input[0] == "rmdir") // 删除子目录
-            this->rmdir(input[1]);
-
-        else if (input[0] == "format")
+        try
         {
-            this->format();
-            this->exit();
-            this->login();
+            // 目录管理
+            if (input[0] == "ls") // 查看子目录
+                this->ls();
+            else if (input[0] == "cd") // 进入子目录
+                this->cd(input[1]);
+            else if (input[0] == "rmdir") // 删除子目录
+                this->rmdir(input[1]);
+            // 文件管理
+            else if (input[0] == "open")
+            {
+            }
+            else if (input[0] == "format")
+            {
+                this->format();
+                this->exit();
+                this->login();
+            }
+            else if (input[0] == "help")
+                this->help();
+            else if (input[0] == "exit")
+            {
+                this->exit();
+                break;
+            }
         }
-        else if (input[0] == "help")
-            this->help();
-        else if (input[0] == "exit")
+        catch (int &e)
         {
-            this->exit();
-            break;
+            cout << "error code" << e << endl;
+            cout << "与linux错误码保持一致" << endl
+                 << endl;
         }
     }
 }

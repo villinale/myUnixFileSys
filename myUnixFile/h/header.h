@@ -356,7 +356,7 @@ private:
 	void IPut(Inode *pNode);
 
 	// 分配空闲打开文件控制块File结构
-	File *FAlloc();
+	File *FAlloc(int &iloc);
 
 	void WriteSpb();
 
@@ -397,7 +397,7 @@ public:
 	// 初始化文件系统
 	void fformat();
 	// 根据path打开文件或文件夹
-	File *fopen(string path);
+	int fopen(string path);
 	// 根据fd关闭文件
 	void fclose(File *fp);
 	// 写文件
@@ -410,12 +410,14 @@ public:
 	/****接下来都是在main中可以调用的可交互的函数实现*****/
 	void init();
 	void ls();
+	void cd(string subname);
+	void rmdir(string subname);
+
+	void openFile(string path);
 	void help();
 	void format();
 	void login();
 	void fun();
-	void cd(string subname);
-	void rmdir(string subname);
 };
 
 #endif

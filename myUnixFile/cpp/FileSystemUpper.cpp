@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 21:57:27
+ * @LastEditTime: 2023-05-24 17:16:16
  * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
@@ -337,7 +337,8 @@ void FileSystem::fformat()
 
 	// 创建并写入用户表
 	this->fcreate("/etc/userTable.txt");
-	File *userTableFile = fopen("/etc/userTable.txt");
+	int filoc = fopen("/etc/userTable.txt");
+	File *userTableFile =& this->openFileTable[filoc];
 	this->fwrite(userTable2Char(this->userTable), sizeof(UserTable), userTableFile); // 需要全部写入
 	this->fclose(userTableFile);
 }
@@ -345,7 +346,7 @@ void FileSystem::fformat()
 /// @brief 打开文件
 /// @param path 文件路径
 /// @return File* 返回打开文件的指针
-File *FileSystem::fopen(string path)
+int FileSystem::fopen(string path)
 {
 	Inode *pinode = this->NameI(path);
 
@@ -374,7 +375,8 @@ File *FileSystem::fopen(string path)
 	}
 
 	// 分配打开文件控制块File结构
-	File *pFile = this->FAlloc();
+	int fileloc = 0;
+	File *pFile = this->FAlloc(fileloc);
 	if (NULL == pFile)
 	{
 		cout << "打开太多文件!" << endl;
@@ -386,7 +388,7 @@ File *FileSystem::fopen(string path)
 	pFile->f_uid = this->curId;
 	pFile->f_gid = this->userTable->GetGId(this->curId);
 
-	return pFile;
+	return fileloc;
 }
 
 /// @brief 写文件
