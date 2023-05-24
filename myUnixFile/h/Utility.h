@@ -29,5 +29,7 @@ char *uintArray2Char(unsigned int *arr, int len);
 // 将UserTable*转换为char*
 char *userTable2Char(UserTable *user);
 
+char* spb2Char(SuperBlock* spb);
+
 // 将字符串按照分隔符分割
 vector<string> stringSplit(const string &strIn, char delim);

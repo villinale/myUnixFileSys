@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:31:20
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 16:54:54
+ * @LastEditTime: 2023-05-24 14:55:40
  * @Description: FileSystem内部调用的各个函数内容
  */
 #include "../h/header.h"
@@ -277,7 +277,7 @@ Inode *FileSystem::IAlloc()
                     // 该外存Inode没有对应的内存拷贝，将其记入空闲Inode索引表
                     this->spb->s_inode[this->spb->s_ninode++] = ino;
 
-                    /* 如果空闲索引表已经装满，则不继续搜索 */
+                    // 如果空闲索引表已经装满，则不继续搜索
                     if (this->spb->s_ninode >= 100)
                         break;
                 }
@@ -308,6 +308,7 @@ Inode *FileSystem::IAlloc()
         pNode->Clean();
         return pNode;
     }
+    return pNode;
 }
 
 /// @brief 分配空闲打开文件控制块File结构
@@ -320,6 +321,60 @@ File *FileSystem::FAlloc()
     return NULL;
 }
 
+/// @brief 释放指定的数据盘块
+/// @param blkno 要释放的数据盘块号
+void FileSystem::Free(int blkno)
+{
+    Buf *pBuf;
+    if (blkno < POSITION_BLOCK)
+    {
+        cout << "不能释放系统盘块" << endl;
+        return;
+    }
+
+    // 如果先前系统中已经没有空闲盘块，现在释放的是系统中第1块空闲盘块
+    if (this->spb->s_nfree <= 0)
+    {
+        this->spb->s_nfree = 1;
+        this->spb->s_free[0] = 0;
+    }
+
+    // 如果SuperBlock中直接管理空闲磁盘块号的栈已满
+    if (this->spb->s_nfree >= NUM_FREE_BLOCK_GROUP)
+    {
+        // 分配一个新缓存块，用于存放新的空闲磁盘块号
+        pBuf = this->bufManager->GetBlk(blkno);
+
+        // 将s_nfree和s_free[100]写入回收盘块的前101个字节
+        // s_free[0]=回收的盘块号
+        // s_nfree=1
+        // 以上摘自PPT
+        unsigned int *stack = new unsigned int[NUM_FREE_BLOCK_GROUP + 1]{0}; // 第一位是链接的上一组的盘块个数
+        stack[0] = this->spb->s_nfree;                                       // 第一位是链接的上一组的盘块个数
+        for (int i = 0; i < NUM_FREE_BLOCK_GROUP; i++)
+            stack[i + 1] = this->spb->s_free[i];
+        pBuf->b_addr = uintArray2Char(stack, NUM_FREE_BLOCK_GROUP + 1);
+        bufManager->Bwrite(pBuf);
+
+        this->spb->s_nfree = 0;
+    }
+
+    // 释放数据盘块号
+    this->spb->s_free[this->spb->s_nfree++] = blkno;
+}
+
+/// @brief 释放外存Inode节点
+/// @param number 外存Inode编号
+void FileSystem::IFree(int number)
+{
+    // spb够用
+    if (this->spb->s_ninode >= NUM_FREE_INODE)
+        return;
+
+    // 将该外存Inode的编号记入空闲Inode索引表，后来的会直接覆盖掉它的内容
+    this->spb->s_inode[this->spb->s_ninode++] = number;
+}
+
 /// @brief 释放InodeTable中的Inode节点
 /// @param pNode
 void FileSystem::IPut(Inode *pNode)
@@ -330,20 +385,32 @@ void FileSystem::IPut(Inode *pNode)
         pNode->i_mtime = unsigned int(time(NULL));
         pNode->i_atime = unsigned int(time(NULL));
         pNode->WriteI();
+        // TODO:在这里源码没搞懂：为什么时先释放了外存inode，还把内存inode信息更新
+        // 该文件已经没有目录路径指向它
+        if (pNode->i_nlink <= 0)
+        {
+            // 释放该文件占据的数据盘块
+            pNode->ITrunc();
+            pNode->i_mode = 0;
+            // 释放对应的外存Inode
+            this->IFree(pNode->i_number);
+        }
         pNode->Clean();
     }
 
-    // 减少内存Inode的引用计数，唤醒等待进程
+    // 减少内存Inode的引用计数
     pNode->i_count--;
 }
 
 /// @brief 将超级块写回磁盘
 void FileSystem::WriteSpb()
 {
-    Buf *bp = this->bufManager->Bread(POSITION_SUPERBLOCK);
-    memcpy_s(bp->b_addr, SIZE_BUFFER, (const char *)this->spb, SIZE_BUFFER);
+    char* p = spb2Char(this->spb);
+    Buf* bp = this->bufManager->Bread(POSITION_SUPERBLOCK);
+    memcpy(bp->b_addr, p, SIZE_BUFFER);
     this->bufManager->Bwrite(bp);
     bp = this->bufManager->Bread(POSITION_SUPERBLOCK + 1);
-    memcpy_s(bp->b_addr, SIZE_BUFFER, (const char *)this->spb + SIZE_BLOCK, SIZE_BUFFER);
+    //这里之前有内存泄漏
+    memcpy(bp->b_addr + SIZE_BLOCK, p + SIZE_BLOCK, sizeof(SuperBlock) - SIZE_BLOCK);
     this->bufManager->Bwrite(bp);
 }

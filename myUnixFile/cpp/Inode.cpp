@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 21:39:00
+ * @LastEditTime: 2023-05-24 14:21:21
  * @Description: Inode类相关操作
  */
 
@@ -154,6 +154,20 @@ int Inode::GetParentInumber()
     Directory *dir = char2Directory(bp->b_addr);
 
     return dir->d_inodenumber[1];
+}
+
+/// @brief 释放数据盘块
+void Inode::ITrunc()
+{
+    BufferManager *bufMgr = fs.GetBufferManager();
+    for (int i = 0; i < NUM_I_ADDR; i++)
+    {
+        if (this->i_addr[i] != 0)
+        {
+            fs.Free(this->i_addr[i]);
+            this->i_addr[i] = 0;
+        }
+    }
 }
 
 /// @brief 获取目录内容

@@ -1,8 +1,15 @@
 /*
  * @Author: yingxin wang
+ * @Date: 2023-05-24 11:09:29
+ * @LastEditors: yingxin wang
+ * @LastEditTime: 2023-05-24 15:05:22
+ * @Description: 请填写简介
+ */
+/*
+ * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-22 00:13:30
+ * @LastEditTime: 2023-05-24 15:03:03
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -13,9 +20,13 @@
 void FileSystem::help()
 {
     // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
-    cout << "命令        说明" << endl;
-    printf("cd          格式化文件系统\n");
-    printf("fformat     格式化文件系统\n");
+    cout << "命令                  说明" << endl;
+    printf("----------目录相关----------\n");
+    printf("ls                  查看子目录\n");
+    printf("cd <dir-name>       打开名字为dir-name的子目录\n");
+    printf("rmdir <dir-name>    删除名字为dir-name的子目录\n");
+    printf("------------其他-----------\n");
+    printf("fformat             格式化文件系统\n");
 }
 
 /// @brief 列目录
@@ -69,6 +80,59 @@ void FileSystem::cd(string subname)
     }
     this->curDirInode = this->IGet(dir->d_inodenumber[i]);
     this->curDir += "/" + subname;
+}
+
+/// @brief 删除子目录
+/// @param subname 子目录名称
+void FileSystem::rmdir(string subname)
+{
+    if (subname == "." || subname == "..")
+    {
+        cout << "不能删除当前目录或父目录!" << endl;
+        return;
+    }
+
+    // 普通情况，删除子文件夹
+    Directory *dir = this->curDirInode->GetDir();
+    int i;
+    for (i = 0; i < NUM_SUB_DIR; i++)
+    {
+        if (dir->d_inodenumber[i] == 0)
+            continue;
+        if (strcmp(dir->d_filename[i], subname.c_str()) == 0)
+            break;
+    }
+    if (i == NUM_SUB_DIR)
+    {
+        cout << "所要删除的目录不存在!" << endl;
+        return;
+    }
+
+    // 获取所要删除的文件夹的Inode
+    Inode *pDeleteInode = this->IGet(dir->d_inodenumber[i]);
+    if (NULL == pDeleteInode) // 这样的情况应该不存在，但是写一下
+    {
+        cout << "所要删除的目录不存在!" << endl;
+        return;
+    }
+    if (pDeleteInode->i_mode & Inode::INodeMode::IFILE) // 如果是文件类型
+    {
+        cout << "请输入正确的子目录名!" << endl;
+        return;
+    }
+    Directory *deletedir = pDeleteInode->GetDir();
+    for (int i = 1; i < NUM_SUB_DIR; i++)
+    {
+        if (deletedir->d_inodenumber[i] != 0)
+        {
+            cout << "目录非空，不能删除!" << endl;
+            return;
+        }
+    }
+
+    // 删除子目录,其实只是unlink
+    pDeleteInode->i_nlink--;
+    this->IPut(pDeleteInode); // 当i_nlink为0时，会释放Inode
 }
 
 /// @brief 初始化系统，用于已有磁盘文件的情况
@@ -148,22 +212,58 @@ void FileSystem::login()
     this->curName = name;
 }
 
+void FileSystem::format()
+{
+    cout << this->curName << this->curDir << ">"
+         << "确定要进行格式化?[y] ";
+    string strIn;
+    getline(cin, strIn);
+    cout << "正在格式化" << endl
+         << endl;
+    if (strIn == "y" || strIn == "Y")
+    {
+        this->fformat();
+    }
+    cout << "格式化结束" << endl
+         << endl;
+}
+
 void FileSystem::fun()
 {
+    this->login();
+
     cout << "输入help可以查看命令清单" << endl;
     vector<string> input;
     string strIn;
     while (true)
     {
-        cout << this->curName << "\\" << this->curDir << ">";
+        cout << endl
+             << this->curName << this->curDir << ">";
         getline(cin, strIn);
         input = stringSplit(strIn, ' ');
         if (input.size() == 0)
             continue;
 
-        if (input[0] == "ls")
+        // 目录管理
+        if (input[0] == "ls") // 查看子目录
             this->ls();
-        else if (input[0] == "cd")
+        else if (input[0] == "cd") // 进入子目录
             this->cd(input[1]);
+        else if (input[0] == "rmdir") // 删除子目录
+            this->rmdir(input[1]);
+
+        else if (input[0] == "format")
+        {
+            this->format();
+            this->exit();
+            this->login();
+        }
+        else if (input[0] == "help")
+            this->help();
+        else if (input[0] == "exit")
+        {
+            this->exit();
+            break;
+        }
     }
 }

@@ -81,6 +81,19 @@ char *uintArray2Char(unsigned int *arr, int len)
     }
 }
 
+char* spb2Char(SuperBlock* spb)
+{
+    try
+    {
+        char* ch = reinterpret_cast<char*>(spb);
+        return ch;
+    }
+    catch (std::exception& e)
+    {
+        std::cerr << "Exception caught: " << e.what() << std::endl;
+    }
+}
+
 // ½«UserTable*×ª»»Îªchar*
 char *userTable2Char(UserTable *user)
 {

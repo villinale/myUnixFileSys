@@ -118,7 +118,7 @@ public:
 	Directory();
 
 	// 根据目录名name和Inode号inumber给当前目录创建一个子目录
-	int mkdir(const char* name, const int inumber);
+	int mkdir(const char *name, const int inumber);
 };
 
 /*
@@ -260,6 +260,8 @@ public:
 
 	// 获取目录内容
 	Directory *GetDir();
+
+	void ITrunc();
 };
 
 /*
@@ -312,7 +314,7 @@ public:
 	// 暂做备用
 	void Bread(char *buf, int blkno, int offset, int size);
 
-	//
+	// 清理Buf
 	void ClrBuf(Buf *bp);
 
 	void SaveAll();
@@ -355,6 +357,8 @@ private:
 
 	void WriteSpb();
 
+	void IFree(int number);
+
 public:
 	enum FileMode
 	{
@@ -370,6 +374,9 @@ public:
 	{
 		return this->bufManager;
 	}
+
+	// 释放空闲数据盘块
+	void Free(int blkno);
 
 	// 分配空闲数据盘块
 	Buf *Alloc();
@@ -401,9 +408,11 @@ public:
 	void init();
 	void ls();
 	void help();
+	void format();
 	void login();
 	void fun();
 	void cd(string subname);
+	void rmdir(string subname);
 };
 
 #endif
