@@ -78,8 +78,11 @@ void FileSystem::cd(string subname)
         cout << "目录不存在!" << endl;
         return;
     }
+    if (this->curDirInode == this->rootDirInode)//root目录只增加子目录名
+        this->curDir += subname;
+    else
+        this->curDir += "/" + subname;
     this->curDirInode = this->IGet(dir->d_inodenumber[i]);
-    this->curDir += "/" + subname;
 }
 
 /// @brief 删除子目录
