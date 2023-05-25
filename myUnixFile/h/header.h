@@ -23,7 +23,7 @@ static const string DISK_PATH = "myDisk.img";
 // 文件逻辑块大小: 512字节
 static const int SIZE_BLOCK = 512;
 // 文件卷大小
-static const int SIZE_DISK = SIZE_BLOCK * 512;
+static const int SIZE_DISK = SIZE_BLOCK * 8192;
 // 文件所有Block数量
 static const int NUM_BLOCK_ALL = SIZE_DISK / SIZE_BLOCK;
 
@@ -299,7 +299,6 @@ class BufferManager
 {
 private:
 	Buf bFreeList;					   // 自由缓存队列控制块,其实实现的是一个双向链表
-	Buf SwBuf;						   // 进程图像传送请求块
 	Buf devtab;						   // 由于只有一个设备，所以只有一个磁盘设备表
 	Buf m_Buf[NUM_BUF];				   // 缓存控制块数组
 	char Buffer[NUM_BUF][SIZE_BUFFER]; // 缓冲区数组

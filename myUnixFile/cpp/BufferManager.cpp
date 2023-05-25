@@ -45,12 +45,6 @@ BufferManager::BufferManager()
         this->m_Buf[i].av_back = (i - 1 >= 0) ? (&m_Buf[i - 1]) : (&bFreeList);
     }
 
-    // 进程图像传送请求块
-    this->SwBuf.b_forw = &SwBuf;
-    this->SwBuf.b_back = &SwBuf;
-    this->SwBuf.av_forw = &SwBuf;
-    this->SwBuf.av_back = &SwBuf;
-
     // 磁盘设备表
     this->devtab.b_forw = &devtab;
     this->devtab.b_back = &devtab;
