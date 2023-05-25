@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:31:20
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 19:37:14
+ * @LastEditTime: 2023-05-25 19:32:00
  * @Description: FileSystem内部调用的各个函数内容
  */
 #include "../h/header.h"
@@ -370,7 +370,7 @@ void FileSystem::Free(int blkno)
         stack[0] = this->spb->s_nfree;                                       // 第一位是链接的上一组的盘块个数
         for (int i = 0; i < NUM_FREE_BLOCK_GROUP; i++)
             stack[i + 1] = this->spb->s_free[i];
-        memcpy(pBuf->b_addr, uintArray2Char(stack, NUM_FREE_BLOCK_GROUP + 1), sizeof(int)* NUM_FREE_BLOCK_GROUP + 1);
+        memcpy(pBuf->b_addr, uintArray2Char(stack, NUM_FREE_BLOCK_GROUP + 1), sizeof(int) * NUM_FREE_BLOCK_GROUP + 1);
         bufManager->Bwrite(pBuf);
 
         this->spb->s_nfree = 0;
@@ -430,4 +430,13 @@ void FileSystem::WriteSpb()
     // 这里之前有内存泄漏
     memcpy(bp->b_addr + SIZE_BLOCK, p + SIZE_BLOCK, sizeof(SuperBlock) - SIZE_BLOCK);
     this->bufManager->Bwrite(bp);
+}
+
+/// @brief 将用户表写回磁盘
+void FileSystem::writeUserTable()
+{
+    int filoc = fopen("/etc/userTable.txt");
+    File *userTableFile = &this->openFileTable[filoc];
+    this->fwrite(userTable2Char(this->userTable), sizeof(UserTable), userTableFile); // 需要全部写入
+    this->fclose(userTableFile);
 }

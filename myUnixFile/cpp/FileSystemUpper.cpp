@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 20:26:08
+ * @LastEditTime: 2023-05-25 19:34:06
  * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
@@ -121,7 +121,7 @@ int FileSystem::fcreate(string path)
 	// 将文件写入目录项中
 	fatherDir->mkdir(name.c_str(), newinode->i_number);
 	// 将父目录写回磁盘中，因为一个目录项就是一个盘块大小，直接修改了b_addr，其实并不安全，
-	//果然有问题啊这句话！！！！fatherBuf->b_addr = directory2Char(fatherDir);
+	// 果然有问题啊这句话！！！！fatherBuf->b_addr = directory2Char(fatherDir);
 	memcpy(fatherBuf->b_addr, directory2Char(fatherDir), sizeof(Directory));
 	this->bufManager->Bwrite(fatherBuf);
 	// this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));
@@ -240,7 +240,7 @@ int FileSystem::mkdir(string path)
 	newinode->i_atime = unsigned int(time(NULL));
 	// 给新文件夹添加两个目录项
 	Directory newDir;
-	newDir.mkdir(".", newinode->i_number);		// 创建自己
+	newDir.mkdir(".", newinode->i_number);	   // 创建自己
 	newDir.mkdir("..", fatherInode->i_number); // 创建父亲
 	// 跟新文件夹分配数据盘块号
 	Buf *newBuf = this->Alloc();
@@ -275,7 +275,15 @@ void FileSystem::exit()
 {
 	// 将superblock写回磁盘
 	this->WriteSpb();
-	// TODO:将userTable写回磁盘，把所有文件都关闭
+	// 将userTable写回磁盘，
+	this->writeUserTable();
+
+	// 把所有文件都关闭
+	for (const auto &pair : this->openFileMap)
+	{
+		this->fclose(&(this->openFileTable[pair.second - 1]));
+	}
+	this->openFileMap.clear();
 
 	// 将所有标记延迟写的内容都写回磁盘
 	this->bufManager->SaveAll();
@@ -327,14 +335,14 @@ void FileSystem::fformat()
 	this->curDirInode = this->rootDirInode;
 	// 分配一个数据盘块存放根目录内容
 	Directory rootDir;
-	rootDir.mkdir(".", this->rootDirInode->i_number);	// 创建自己
+	rootDir.mkdir(".", this->rootDirInode->i_number);  // 创建自己
 	rootDir.mkdir("..", this->rootDirInode->i_number); // 创建父亲，根目录的父亲就是自己，这也是为什么不能直接调用mkdir函数的原因
 	this->curDir = "/";
 
 	// 跟root文件夹分配数据盘块号并且写回磁盘数据区中
 	Buf *newBuf = this->Alloc();
 	memcpy(newBuf->b_addr, directory2Char(&rootDir), sizeof(Directory));
-	//newBuf->b_addr = directory2Char(&rootDir); 这一句出大乱子，改变了newBuf->b_addr指向的位置，它本应指向budmanager->Buffer中的一个
+	// newBuf->b_addr = directory2Char(&rootDir); 这一句出大乱子，改变了newBuf->b_addr指向的位置，它本应指向budmanager->Buffer中的一个
 	this->bufManager->Bwrite(newBuf);
 	// 给Inode写回数据区位置
 	this->rootDirInode->i_size = sizeof(Directory) / NUM_SUB_DIR * 2;
@@ -550,7 +558,7 @@ Directory FileSystem::getDir()
 /// @param fp 文件指针
 /// @param buffer 读取内容索要存放的字符串
 /// @param count  读取的字节数
-void FileSystem::fread(File* fp, char*& buffer, int count)
+void FileSystem::fread(File *fp, char *&buffer, int count)
 {
 	if (fp == NULL)
 	{
@@ -568,7 +576,7 @@ void FileSystem::fread(File* fp, char*& buffer, int count)
 	}
 
 	// 获取文件的Inode
-	Inode* pInode = fp->f_inode;
+	Inode *pInode = fp->f_inode;
 	if (count > 0)
 		buffer = new char[count + 1];
 	else
@@ -590,13 +598,13 @@ void FileSystem::fread(File* fp, char*& buffer, int count)
 		if (size > count - pos)
 			size = count - pos; // 修正读取的大小
 
-		Buf* pBuf = this->bufManager->Bread(blkno);
+		Buf *pBuf = this->bufManager->Bread(blkno);
 		// TODO:如有大文件这里需要改
 		memcpy(buffer + pos, pBuf->b_addr + startpos % SIZE_BLOCK, size);
 		pos += size;
 		fp->f_offset += size;
 	}
-	buffer[count] = '\0'; //设置结束标记
+	buffer[count] = '\0'; // 设置结束标记
 }
 
 FileSystem::~FileSystem()

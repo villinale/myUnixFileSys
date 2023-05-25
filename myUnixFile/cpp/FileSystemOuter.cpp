@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 14:53:44
+ * @LastEditTime: 2023-05-25 19:47:26
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -28,11 +28,15 @@ void FileSystem::help()
     printf("print <file-name>                       读取并打印当前目录里名称为file-name的文件内容(需要先打开文件)\n");
     printf("write <file-name> [offset] [mode]       在当前目录里名称为file-name的文件里,选择从offset位置开始写入(需要先打开文件)\n");
     printf("                                        offset可选,输入整数,表示偏移量\n");
-    printf("                                        mode可选,有三种模式:0表示从文件头+offset位置开始写,1表示从文件指针位置+offset开始写,2表示从文件尾-offset开始写,默认从头开始写\n");
+    printf("                                        mode可选,有三种模式:0表示从文件头+offset位置开始写,\n");
+    printf("                                        1表示从文件指针位置+offset开始写,2表示从文件尾-offset开始写,默认从头开始写\n");
     printf("                                        输入后进入写入模式,输入写入内容,按ESC键表示结束\n");
     printf("cpfwin <win-path>                       将windows系统电脑上路径为win-path的文件复制到当前目录中\n");
     printf("cpffs  <file-name> <win-path>           将本系统上当前目录中名称为file-name的文件复制到电脑上路径为win-path的文件里(需要先打开文件)\n");
-
+    printf("listopen                                打印已打开文件列表\n");
+    printf("--------------用户相关---------------\n");
+    printf("relogin                                 重新登录,会关闭所有的文件,完成之前所有的任务\n");
+    printf("relogin                                 重新登录\n");
     printf("----------------其他----------------\n");
     printf("format                                  格式化文件系统\n");
 }
@@ -291,7 +295,7 @@ void FileSystem::printFile(string path)
         return;
     }
     cout << "文件内容为:" << endl;
-    cout << "\033[31m" << buffer << "\033[0m";//设置用红色字打印出来
+    cout << "\033[31m" << buffer << "\033[0m"; // 设置用红色字打印出来
     cout << endl
          << "文件结束!" << endl;
 }
@@ -373,8 +377,8 @@ void FileSystem::cpfwin(string path)
     int res = this->fcreate(filename);
     if (res == 0)
     {
-        int fileloc= this->fopen(filename);
-        File* filep = &(this->openFileTable[fileloc]);
+        int fileloc = this->fopen(filename);
+        File *filep = &(this->openFileTable[fileloc]);
         this->fwrite(buffer, filesize, filep);
         this->fclose(filep);
         cout << "成功导入文件" << filename << ",写入大小为" << filesize << endl;
@@ -412,6 +416,20 @@ void FileSystem::cpffs(string filename, string winpath)
     cout << "成功导出文件" << filename << ",写入大小为" << count << endl;
 }
 
+void FileSystem::prin0penFileList()
+{
+    cout << "当前打开文件列表:" << endl;
+    if (this->openFileMap.empty())
+    {
+        cout << "无打开文件!" << endl;
+        return;
+    }
+    cout << "文件名路径\t\t文件描述符\t\t文件指针" << endl;
+    for (const auto &pair : this->openFileMap)
+        cout << pair.first << "\t\t" << pair.second << "\t\t" << this->openFileTable[pair.second - 1].f_offset << endl;
+    cout << endl;
+}
+
 void FileSystem::login()
 {
     string name, pswd;
@@ -419,6 +437,39 @@ void FileSystem::login()
     while (true)
     {
         cout << "请输入用户名:";
+        getline(cin, name);
+        cout << "请输入密码:";
+        getline(cin, pswd);
+        if (name.empty() || pswd.empty())
+        {
+            cout << "输入非法!" << endl;
+            continue;
+        }
+        id = this->userTable->FindUser(name.c_str(), pswd.c_str());
+        if (id == -1)
+        {
+            cout << "用户不存在!" << endl;
+            continue;
+        }
+        else
+            break;
+    }
+    cout << "登陆成功!" << endl
+         << endl;
+    this->curId = id;
+    this->curName = name;
+}
+
+void FileSystem::relogin()
+{
+    this->exit();
+    this->init();
+    string name, pswd;
+    short id;
+    while (true)
+    {
+        cout << endl
+             << "请输入用户名:";
         getline(cin, name);
         cout << "请输入密码:";
         getline(cin, pswd);
@@ -582,6 +633,25 @@ void FileSystem::fun()
                     continue;
                 }
                 this->cpffs(input[1], input[2]);
+            }
+            else if (input[0] == "listopen")
+            {
+                if (input.size() < 1 || input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->prin0penFileList();
+            }
+
+            else if (input[0] == "relogin")
+            {
+                if (input.size() < 1 || input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->relogin();
             }
 
             else if (input[0] == "format")

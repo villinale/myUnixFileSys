@@ -364,6 +364,9 @@ private:
 	// 将superblock更新到外存中
 	void WriteSpb();
 
+	// 将UserTable更新到外存中
+	void writeUserTable();
+
 	// 根据Inode号释放Inode
 	void IFree(int number);
 
@@ -431,6 +434,9 @@ public:
 	void printFile(string path);
 	void cpfwin(string path);
 	void cpffs(string filename, string winpath);
+	void prin0penFileList();
+
+	void relogin();
 
 	void help();
 	void format();
