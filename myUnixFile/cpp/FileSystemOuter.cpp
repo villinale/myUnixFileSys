@@ -248,7 +248,7 @@ void FileSystem::closeFile(string path)
     }
     else
     {
-        this->fclose(&(this->openFileTable[fd]));
+        this->fclose(&(this->openFileTable[fd - 1]));
         this->openFileMap.erase(this->GetAbsolutionPath(path));
         cout << "成功关闭文件!" << endl;
     }

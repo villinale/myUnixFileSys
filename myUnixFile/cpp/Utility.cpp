@@ -85,7 +85,9 @@ char* spb2Char(SuperBlock* spb)
 {
     try
     {
-        char* ch = reinterpret_cast<char*>(spb);
+        char* ch = new char[sizeof(SuperBlock)+1];
+        ch[sizeof(SuperBlock)] = '\0';
+        memcpy(ch,reinterpret_cast<char*>(spb), sizeof(SuperBlock)); 
         return ch;
     }
     catch (std::exception& e)
