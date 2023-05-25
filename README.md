@@ -1,10 +1,34 @@
 # myUnixFileSys
-ç±»ä¼¼Unix V6++çš„äºŒçº§æ–‡ä»¶ç³»ç»Ÿ
 
-### ç¼–å†™æ€è·¯
+Í¬¼Ã´óÑ§CS²Ù×÷ÏµÍ³¿Î³ÌÉè¼ÆÏîÄ¿£ºÒ»¸öÀàËÆUnix V6++µÄ¶þ¼¶ÎÄ¼þÏµÍ³
 
-1.å…ˆæŠŠæ‰€æœ‰ç±»å†™å‡ºæ¥
+### ±àÐ´Ë¼Â·
 
-2.å‘çŽ°BufferManageræ˜¯åŸºç¡€ï¼Œå®žçŽ°GetBlkã€Breadã€Bwrite
+1. ÏÈ°ÑËùÓÐÀàÐ´³öÀ´
 
-3.å°è¯•å®žçŽ°åˆå§‹åŒ–æ–‡ä»¶ç³»ç»Ÿçš„æ“ä½œï¼Œæ ¹æ®éœ€è¦çš„å†…å®¹è¿›è¡Œä¸€æ­¥ä¸€æ­¥çš„å¡«å……
+2. ·¢ÏÖBufferManagerÊÇ»ù´¡£¬ÊµÏÖGetBlk¡¢Bread¡¢Bwrite
+
+3. ³¢ÊÔÊµÏÖ³õÊ¼»¯ÎÄ¼þÏµÍ³µÄ²Ù×÷£¬¸ù¾ÝÐèÒªµÄÄÚÈÝ½øÐÐÒ»²½Ò»²½µÄÌî³ä£¬ÕâÑù¾Í»áÐ´³öÒ»Ð©»ù±¾µÄ²Ù×÷±ÈÈçfcreate¡¢freadµÈµÈ£¬ÕâÐ©º¯Êý·Ö±ðÔÚFileSystemUpper.cppºÍFileSystemInner.cppÖÐ
+
+4. ³õÊ¼»¯ÎÄ¼þÏµÍ³Íê³ÉµÄ²î²»¶àÖ®ºó£¬ÔÙ¿¼ÂÇÈçºÎ¹¹Ôìº¯Êý¡¢Ìí¼Ó±äÁ¿ÒÔ±ãÍê³ÉÓë¿ØÖÆÌ¨µÄÃüÁî½»»¥£¬ÕâÐ©ÃüÁîÔÚFileSystemOuer.cppÖÐ
+
+### ¹¦ÄÜ
+
+1. Ö§³Ö»ù±¾µÄÎÄ¼þÔöÉ¾¶ÁÐ´¡¢Ä¿Â¼ÔöÉ¾²Ù×÷£¬ÒÔ¼°ÓëµçÄÔ½øÐÐÎÄ¼þ´«ÊäµÄ¹¦ÄÜ
+2. ÀûÓÃ¸ßËÙ»º´æ½øÐÐÎÄ¼þ¶ÁÐ´
+3. ¼òµ¥¶àÓÃ»§¶àÓÃ»§×éµÄ¹ÜÀíºÍÎÄ¼þ´æ·Ã
+4. Ê¹ÓÃ¿ØÖÆÌ¨ÊäÈëÃüÁî½øÐÐ½»»¥
+
+### ¿ªÊ¼
+
+1. ´ò¿ª.exeÎÄ¼þÒÔ¿ªÊ¼
+
+2. Ê¹ÓÃÕËºÅÃÜÂë½øÐÐµÇÂ¼£¬ÎÄ¼þÏµÍ³³õÊ¼ÄÚÖÃÁ½¸öÓÃ»§£ºroot(ÃÜÂë£ºroot)¡¢unix(ÃÜÂë:1)
+
+3. ÊäÈëhelp²é¿´Ö§³ÖµÄÃüÁî£¬½ÓÏÂÀ´ÊäÈëÃüÁî½øÐÐ½»»¥°É£¡
+
+4. ÍË³öÊ±ÇëÎðÖ±½Ó¹Ø±Õ¿ØÖÆÌ¨£¡£¡Ò»¶¨ÒªÊäÈëexitÔÙ¹Ø±Õ£¬·ñÔò»á·¢Éú²»¿ÉÔ¤ÁÏµÄ´íÎó£¡£¡
+
+### ±¸×¢
+
+ÓÃ»§ÐÅÏ¢ÔÚ/etc/UsetTable.txtÖÐ£¬ÇëÎðºúÂÒÐÞ¸Ä¡£

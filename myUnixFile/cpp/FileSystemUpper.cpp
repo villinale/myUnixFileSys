@@ -275,7 +275,7 @@ void FileSystem::exit()
 {
 	// 将superblock写回磁盘
 	this->WriteSpb();
-	// TODO:将userTable写回磁盘
+	// TODO:将userTable写回磁盘，把所有文件都关闭
 
 	// 将所有标记延迟写的内容都写回磁盘
 	this->bufManager->SaveAll();
@@ -369,7 +369,7 @@ int FileSystem::fopen(string path)
 	{
 		cout << "没有找到对应的文件或目录!" << endl;
 		throw(ENOENT);
-		return NULL;
+		return -1;
 	}
 
 	// 如果找到，判断所要找的文件是不是文件类型
@@ -377,7 +377,7 @@ int FileSystem::fopen(string path)
 	{
 		cout << "不是一个正确的文件!" << endl;
 		throw(ENOTDIR);
-		return NULL;
+		return -1;
 	}
 
 	// 如果找到，判断是否有权限打开文件
@@ -385,7 +385,7 @@ int FileSystem::fopen(string path)
 	{
 		cout << "没有权限打开文件!" << endl;
 		throw(EACCES);
-		return NULL;
+		return -1;
 	}
 
 	// 分配打开文件控制块File结构
@@ -395,7 +395,7 @@ int FileSystem::fopen(string path)
 	{
 		cout << "打开太多文件!" << endl;
 		throw(ENFILE);
-		return NULL;
+		return -1;
 	}
 	pFile->f_inode = pinode;
 	pFile->f_offset = 0;
@@ -448,7 +448,7 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 	while (pos < count)
 	{
 		// 计算本次写入位置在文件中的位置
-		int startpos = fp->f_offset + pos;
+		int startpos = fp->f_offset;
 		// 计算本次写入物理盘块号，如果文件大小不够的话会在里面新分配物理盘块
 		int blkno = pInode->Bmap(startpos % SIZE_BLOCK);
 		// 计算本次写入的大小
@@ -570,7 +570,7 @@ void FileSystem::fread(File* fp, char*& buffer, int count)
 	// 获取文件的Inode
 	Inode* pInode = fp->f_inode;
 	if (count > 0)
-		buffer = new char[count];
+		buffer = new char[count + 1];
 	else
 	{
 		buffer = NULL;
@@ -580,7 +580,7 @@ void FileSystem::fread(File* fp, char*& buffer, int count)
 	while (pos < count)
 	{
 		// 计算本读取位置在文件中的位置
-		int startpos = fp->f_offset + pos;
+		int startpos = fp->f_offset;
 		if (startpos >= pInode->i_size) // 读取位置超出文件大小
 			break;
 		// 计算本次读取物理盘块号，由于上一个判断,不会有读取位置超出文件大小的问题
@@ -596,6 +596,7 @@ void FileSystem::fread(File* fp, char*& buffer, int count)
 		pos += size;
 		fp->f_offset += size;
 	}
+	buffer[count] = '\0'; //设置结束标记
 }
 
 FileSystem::~FileSystem()

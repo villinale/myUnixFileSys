@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 20:46:40
+ * @LastEditTime: 2023-05-25 14:53:44
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -14,23 +14,27 @@ void FileSystem::help()
 {
     // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
     printf("下列命令中带'<>'的项是必须的，带'[]'的项是可选择的\n");
+    printf("请注意：本系统中路径用'/'分隔，windows系统路径用'\\'分割\n");
+    printf("        VS中默认编码是GBK,想要正确输出文件内容，请保持编码一致\n");
     printf("--------------目录相关---------------\n");
     printf("ls                                      查看当前目录下的子目录\n");
-    printf("cd <dir-name>                           打开在当前目录下名称为dir-name的子目录\n");
+    printf("cd    <dir-name>                        打开在当前目录下名称为dir-name的子目录\n");
     printf("mkdir <dir-name>                        创建在当前目录下名称为dir-name的子目录\n");
     printf("rmdir <dir-name>                        删除在当前目录下名称为dir-name的子目录\n");
     printf("--------------文件相关---------------\n");
     printf("touch <file-name>                       在当前目录下创建名称为file-name的文件\n");
-    printf("open <file-name>                        打开当前目录里名称为file-name的文件\n");
+    printf("open  <file-name>                       打开当前目录里名称为file-name的文件\n");
     printf("close <file-name>                       关闭当前目录里名称为file-name的文件\n");
-    printf("print <file-name>                       读取并打印当前目录里名称为file-name的文件内容\n");
-    printf("write <file-name> [offset] [mode]       在当前目录里名称为file-name的文件里,选择从offset位置开始写入\n");
+    printf("print <file-name>                       读取并打印当前目录里名称为file-name的文件内容(需要先打开文件)\n");
+    printf("write <file-name> [offset] [mode]       在当前目录里名称为file-name的文件里,选择从offset位置开始写入(需要先打开文件)\n");
     printf("                                        offset可选,输入整数,表示偏移量\n");
     printf("                                        mode可选,有三种模式:0表示从文件头+offset位置开始写,1表示从文件指针位置+offset开始写,2表示从文件尾-offset开始写,默认从头开始写\n");
     printf("                                        输入后进入写入模式,输入写入内容,按ESC键表示结束\n");
+    printf("cpfwin <win-path>                       将windows系统电脑上路径为win-path的文件复制到当前目录中\n");
+    printf("cpffs  <file-name> <win-path>           将本系统上当前目录中名称为file-name的文件复制到电脑上路径为win-path的文件里(需要先打开文件)\n");
 
     printf("----------------其他----------------\n");
-    printf("fformat             格式化文件系统\n");
+    printf("format                                  格式化文件系统\n");
 }
 
 /// @brief 初始化系统，用于已有磁盘文件的情况
@@ -236,7 +240,7 @@ void FileSystem::openFile(string path)
 void FileSystem::closeFile(string path)
 {
     int fd = this->openFileMap[this->GetAbsolutionPath(path)];
-    if (fd == -1)
+    if (fd == 0)
     {
         cout << "文件未打开!" << endl;
         return;
@@ -274,10 +278,10 @@ void FileSystem::printFile(string path)
         return;
     }
 
-    File* fp = &(this->openFileTable[fd - 1]);
-    char* buffer = NULL;
+    File *fp = &(this->openFileTable[fd - 1]);
+    char *buffer = NULL;
     int count = fp->f_inode->i_size;
-    int oldoffset = fp->f_offset;//记录旧的文件指针位置
+    int oldoffset = fp->f_offset; // 记录旧的文件指针位置
     fp->f_offset = 0;
     this->fread(fp, buffer, count);
     fp->f_offset = oldoffset;
@@ -287,9 +291,9 @@ void FileSystem::printFile(string path)
         return;
     }
     cout << "文件内容为:" << endl;
-    for (int i = 0; i < count; i++)
-        cout << *(buffer + i) ;
-    cout << endl << "文件结束!" << endl;
+    cout << "\033[31m" << buffer << "\033[0m";//设置用红色字打印出来
+    cout << endl
+         << "文件结束!" << endl;
 }
 
 void FileSystem::writeFile(string path, int offset, int mode)
@@ -344,6 +348,68 @@ void FileSystem::writeFile(string path, int offset, int mode)
     cout << "本次输入字符个数：" << i << endl;
 
     this->fwrite(input.c_str(), input.size(), fp);
+}
+
+void FileSystem::cpfwin(string path)
+{
+    fstream fd;
+    fd.open(path, ios::in | ios::binary);
+    if (!fd.is_open())
+    {
+        cout << "无法打开文件" << path << endl;
+        return;
+    }
+    fd.seekg(0, fd.end);
+    int filesize = fd.tellg(); // 获取文件大小
+    fd.seekg(0, fd.beg);
+    char *buffer = new char[filesize];
+    fd.read(buffer, filesize); // 读取文件内容
+    fd.close();
+
+    vector<string> paths = stringSplit(path, '\\'); // win系统上的路径分割符为'\'
+    string filename = paths[paths.size() - 1];      // 获取文件名
+
+    // 创建文件
+    int res = this->fcreate(filename);
+    if (res == 0)
+    {
+        int fileloc= this->fopen(filename);
+        File* filep = &(this->openFileTable[fileloc]);
+        this->fwrite(buffer, filesize, filep);
+        this->fclose(filep);
+        cout << "成功导入文件" << filename << ",写入大小为" << filesize << endl;
+    }
+}
+
+void FileSystem::cpffs(string filename, string winpath)
+{
+    fstream fd;
+    fd.open(winpath, ios::out);
+    if (!fd.is_open())
+    {
+        cout << "无法打开文件" << winpath << endl;
+        return;
+    }
+
+    // 打开fs中的文件
+    int fileloc = this->fopen(filename);
+    File *fp = &(this->openFileTable[fileloc]);
+    char *buffer = NULL;
+    int count = fp->f_inode->i_size;
+    int oldoffset = fp->f_offset; // 记录旧的文件指针位置
+    fp->f_offset = 0;
+    this->fread(fp, buffer, count);
+    fp->f_offset = oldoffset;
+    this->fclose(fp);
+
+    if (buffer == NULL)
+    {
+        cout << "为空!" << endl;
+        return;
+    }
+    fd.write(buffer, count); // 写入文件内容
+    fd.close();
+    cout << "成功导出文件" << filename << ",写入大小为" << count << endl;
 }
 
 void FileSystem::login()
@@ -499,6 +565,24 @@ void FileSystem::fun()
                 }
                 this->printFile(input[1]);
             }
+            else if (input[0] == "cpfwin")
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->cpfwin(input[1]);
+            }
+            else if (input[0] == "cpffs")
+            {
+                if (input.size() < 3 || input.size() > 3)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->cpffs(input[1], input[2]);
+            }
 
             else if (input[0] == "format")
             {
@@ -520,7 +604,7 @@ void FileSystem::fun()
         }
         catch (int &e)
         {
-            cout << "error code" << e << endl;
+            cout << "error code：" << e << endl;
             cout << "与linux错误码保持一致" << endl
                  << endl;
         }

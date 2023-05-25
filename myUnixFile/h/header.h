@@ -415,7 +415,7 @@ public:
 
 	Directory getDir();
 
-	void fread(File *fp, char *& buffer, int count);
+	void fread(File *fp, char *&buffer, int count);
 
 	/****接下来都是在main中可以调用的可交互的函数实现*****/
 	void init();
@@ -429,6 +429,8 @@ public:
 	void closeFile(string path);
 	void writeFile(string path, int offset, int mode);
 	void printFile(string path);
+	void cpfwin(string path);
+	void cpffs(string filename, string winpath);
 
 	void help();
 	void format();
