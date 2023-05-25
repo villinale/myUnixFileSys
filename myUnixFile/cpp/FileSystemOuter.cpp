@@ -61,9 +61,13 @@ void FileSystem::init()
     // 对缓存相关内容进行初始化
     this->bufManager = new BufferManager();
 
-    // 读取超级块
+    // 读取超级块，超级块有两个！！
+    char* ch = new char[sizeof(SuperBlock)];
     Buf *buf = this->bufManager->Bread(POSITION_SUPERBLOCK);
-    this->spb = char2SuperBlock(buf->b_addr);
+    memcpy(ch, buf->b_addr, SIZE_BLOCK);
+    buf = this->bufManager->Bread(POSITION_SUPERBLOCK + 1);
+    memcpy(ch + SIZE_BLOCK, buf->b_addr, SIZE_BLOCK);
+    this->spb = char2SuperBlock(ch); //不能删掉ch
 
     // 读取根目录Inode
     buf = this->bufManager->Bread(POSITION_DISKINODE);

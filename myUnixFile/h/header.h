@@ -27,13 +27,6 @@ static const int SIZE_DISK = SIZE_BLOCK * 512;
 // 文件所有Block数量
 static const int NUM_BLOCK_ALL = SIZE_DISK / SIZE_BLOCK;
 
-// SuperBlock中能够管理的最大空闲Inode与空闲数据盘块的数量
-static const int NUM_FREE_INODE = 100;
-// SuperBlock开始的位置（以block为单位）
-static const unsigned int POSITION_SUPERBLOCK = 0;
-// SuperBlock一组空闲数据盘块的数量
-static const int NUM_FREE_BLOCK_GROUP = 100;
-
 // DiskInode数量
 static const int NUM_DISKINODE = 256;
 // DiskInode中可以使用的最大物理块数量
@@ -44,6 +37,17 @@ static const int SIZE_DISKINODE = 64;
 static const unsigned int POSITION_DISKINODE = 2;
 // 每个Block中DiskInode的数量
 static const int NUM_INODE_PER_BLOCK = SIZE_BLOCK / SIZE_DISKINODE;
+
+// SuperBlock中能够管理的最大空闲Inode与空闲数据盘块的数量
+static const int NUM_FREE_INODE = 100;
+// SuperBlock开始的位置（以block为单位）
+static const unsigned int POSITION_SUPERBLOCK = 0;
+// SuperBlock一组空闲数据盘块的数量
+static const int NUM_FREE_BLOCK_GROUP = 100;
+// SuperBlock本身有的大小
+static const int SIZE_SUPERBLOCK = 816;
+// SuperBlock需要填充的字节数
+static const int SIZE_PADDING = POSITION_DISKINODE * SIZE_BLOCK - SIZE_SUPERBLOCK;
 
 // 数据块Block数量
 static const int NUM_BLOCK = NUM_BLOCK_ALL - POSITION_DISKINODE - NUM_DISKINODE / NUM_INODE_PER_BLOCK;
@@ -127,20 +131,20 @@ public:
 	void deletei(int iloc);
 };
 
-/*
- * 文件系统存储资源管理块(Super Block)的定义。
- */
+//文件系统存储资源管理块(Super Block)的定义。
 class SuperBlock
 {
 public:
-	unsigned int s_isize; /* Inode区占用的盘块数 */
-	unsigned int s_fsize; /* 盘块总数 */
+	unsigned int s_isize; // Inode区占用的盘块数 
+	unsigned int s_fsize; // 盘块总数 
 
-	unsigned int s_ninode;				  /* 直接管理的空闲外存Inode数量 */
-	unsigned int s_inode[NUM_FREE_INODE]; /* 直接管理的空闲外存Inode索引表 */
+	unsigned int s_ninode;				  // 直接管理的空闲外存Inode数量
+	unsigned int s_inode[NUM_FREE_INODE]; // 直接管理的空闲外存Inode索引表
 
-	unsigned int s_nfree;					   /* 直接管理的空闲盘块数量 */
-	unsigned int s_free[NUM_FREE_BLOCK_GROUP]; /* 直接管理的空闲盘块索引表 */
+	unsigned int s_nfree;					   // 直接管理的空闲盘块数量 
+	unsigned int s_free[NUM_FREE_BLOCK_GROUP]; // 直接管理的空闲盘块索引表 
+	char padding[SIZE_PADDING]; // 填充使SuperBlock块大小等于1024字节，占据2个扇区,非常有必要！！！！
+								//我使用了char而已
 
 	// 初始化SuperBlock
 	void Init();

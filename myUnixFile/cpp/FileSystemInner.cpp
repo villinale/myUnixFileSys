@@ -422,13 +422,13 @@ void FileSystem::IPut(Inode *pNode)
 /// @brief 将超级块写回磁盘
 void FileSystem::WriteSpb()
 {
-    char *p = spb2Char(this->spb);
-    Buf *bp = this->bufManager->Bread(POSITION_SUPERBLOCK);
+    char* p = spb2Char(this->spb);
+    Buf* bp = this->bufManager->Bread(POSITION_SUPERBLOCK);
     memcpy(bp->b_addr, p, SIZE_BUFFER);
     this->bufManager->Bwrite(bp);
     bp = this->bufManager->Bread(POSITION_SUPERBLOCK + 1);
-    // 这里之前有内存泄漏
-    memcpy(bp->b_addr, p + SIZE_BLOCK, sizeof(SuperBlock) - SIZE_BLOCK);
+    // 这里之前有内存泄漏,没有填充的话这里一直会有问题
+    memcpy(bp->b_addr, p + SIZE_BLOCK, SIZE_BLOCK);
     this->bufManager->Bwrite(bp);
 }
 
