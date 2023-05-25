@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 19:47:26
+ * @LastEditTime: 2023-05-25 19:53:14
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -113,15 +113,12 @@ void FileSystem::cd(string subname)
         if (this->curDir == "/") // 根目录情况
             return;
 
-        int id = this->curDir.find_last_of('/');
-        if (id == 0) // 说明这是根目录下的子目录
-            this->curDir = "/";
-        else
-            this->curDir = this->curDir.substr(0, this->curDir.find_last_of('/'));
-
-        this->IPut(this->curDirInode); // 释放当前目录的Inode
+        this->curDir.erase(this->curDir.find_last_of('/'));                        // 删除最后一个'/'
+        this->curDir = this->curDir.substr(0, this->curDir.find_last_of('/') + 1); // 截取最后一个'/'
+        Inode *p = this->curDirInode;
         // 回退父目录的Inode
         this->curDirInode = this->IGet(this->curDirInode->GetParentInumber());
+        this->IPut(p); // 释放当前目录的Inode
 
         return;
     }
