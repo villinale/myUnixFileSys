@@ -437,6 +437,8 @@ public:
 	void prin0penFileList();
 
 	void relogin();
+	void adduser();
+	void deluser();
 
 	void help();
 	void format();

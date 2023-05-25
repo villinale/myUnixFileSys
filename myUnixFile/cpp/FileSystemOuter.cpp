@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 19:53:14
+ * @LastEditTime: 2023-05-25 20:19:00
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -16,6 +16,7 @@ void FileSystem::help()
     printf("下列命令中带'<>'的项是必须的，带'[]'的项是可选择的\n");
     printf("请注意：本系统中路径用'/'分隔，windows系统路径用'\\'分割\n");
     printf("        VS中默认编码是GBK,想要正确输出文件内容，请保持编码一致\n");
+    cout << "        \033[31m请勿随便关掉控制台,想要正确退出系统一定要输入exit\033[0m"; // 设置用红色字打印出来
     printf("--------------目录相关---------------\n");
     printf("ls                                      查看当前目录下的子目录\n");
     printf("cd    <dir-name>                        打开在当前目录下名称为dir-name的子目录\n");
@@ -36,9 +37,11 @@ void FileSystem::help()
     printf("listopen                                打印已打开文件列表\n");
     printf("--------------用户相关---------------\n");
     printf("relogin                                 重新登录,会关闭所有的文件,完成之前所有的任务\n");
-    printf("relogin                                 重新登录\n");
+    printf("adduser                                 添加新用户,但是只能由root用户操作\n");
+    printf("deluser                                 删除用户,但是只能由root用户操作\n");
     printf("----------------其他----------------\n");
     printf("format                                  格式化文件系统\n");
+    printf("exit                                    退出系统\n");
 }
 
 /// @brief 初始化系统，用于已有磁盘文件的情况
@@ -346,7 +349,8 @@ void FileSystem::writeFile(string path, int offset, int mode)
             i++;
         }
     }
-    cout << "本次输入字符个数：" << i << endl;
+    cout << endl
+         << "本次输入字符个数：" << i << endl;
 
     this->fwrite(input.c_str(), input.size(), fp);
 }
@@ -490,6 +494,40 @@ void FileSystem::relogin()
     this->curName = name;
 }
 
+void FileSystem::adduser()
+{
+    string name, pswd, temp;
+    short uid, id;
+    cout << "请输入用户名:";
+    getline(cin, name);
+    cout << "请输入密码:";
+    getline(cin, pswd);
+    cout << "请输入组id(root组id为0,unix组id为1):";
+    getline(cin, temp);
+    if (name.empty() || pswd.empty() || temp.empty())
+    {
+        cout << "输入非法!" << endl;
+        return;
+    }
+    uid = atoi(temp.c_str());
+    this->userTable->AddUser(this->curId, name.c_str(), pswd.c_str(), uid);
+    return;
+}
+
+void FileSystem::deluser()
+{
+    string name;
+    cout << "请输入想要删除的用户名:";
+    getline(cin, name);
+    if (name.empty())
+    {
+        cout << "输入非法!" << endl;
+        return;
+    }
+    this->userTable->DeleteUser(this->curId, name.c_str());
+    return;
+}
+
 void FileSystem::format()
 {
     cout << this->curName << this->curDir << ">"
@@ -516,7 +554,8 @@ void FileSystem::fun()
     string strIn;
     while (true)
     {
-        cout << this->curName << this->curDir << ">";
+        cout << endl
+             << this->curName << this->curDir << ">";
         getline(cin, strIn);
         input = stringSplit(strIn, ' ');
         if (input.size() == 0)
@@ -649,6 +688,24 @@ void FileSystem::fun()
                     continue;
                 }
                 this->relogin();
+            }
+            else if (input[0] == "adduser")
+            {
+                if (input.size() < 1 || input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->adduser();
+            }
+            else if (input[0] == "deluser")
+            {
+                if (input.size() < 1 || input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->deluser();
             }
 
             else if (input[0] == "format")

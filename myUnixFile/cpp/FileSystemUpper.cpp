@@ -609,10 +609,12 @@ void FileSystem::fread(File *fp, char *&buffer, int count)
 
 FileSystem::~FileSystem()
 {
+	/*
 	this->exit();
 	delete this->bufManager;
 	delete this->spb;
 	delete this->userTable;
-	delete this->curDirInode;
-	delete this->rootDirInode;
+	if (this->curDirInode != this->rootDirInode)
+		delete this->rootDirInode;
+	delete this->curDirInode;*/
 }

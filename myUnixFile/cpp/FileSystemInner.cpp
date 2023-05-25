@@ -428,7 +428,7 @@ void FileSystem::WriteSpb()
     this->bufManager->Bwrite(bp);
     bp = this->bufManager->Bread(POSITION_SUPERBLOCK + 1);
     // 这里之前有内存泄漏
-    memcpy(bp->b_addr + SIZE_BLOCK, p + SIZE_BLOCK, sizeof(SuperBlock) - SIZE_BLOCK);
+    memcpy(bp->b_addr, p + SIZE_BLOCK, sizeof(SuperBlock) - SIZE_BLOCK);
     this->bufManager->Bwrite(bp);
 }
 
