@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-24 14:21:21
+ * @LastEditTime: 2023-05-25 20:54:47
  * @Description: Inode类相关操作
  */
 
@@ -156,6 +156,7 @@ int Inode::GetParentInumber()
 }
 
 /// @brief 释放数据盘块
+// TODO:如果修改为大文件这里要改
 void Inode::ITrunc()
 {
     BufferManager *bufMgr = fs.GetBufferManager();

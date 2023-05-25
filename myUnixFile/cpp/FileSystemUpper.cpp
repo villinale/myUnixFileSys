@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 19:34:06
+ * @LastEditTime: 2023-05-25 21:07:26
  * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
@@ -414,6 +414,130 @@ int FileSystem::fopen(string path)
 	pinode->i_atime = unsigned int(time(NULL));
 
 	return fileloc;
+}
+
+/// @brief 删除文件
+/// @param path 文件路径
+/// @return int 返回0表示成功，-1表示失败
+int FileSystem::fdelete(string path)
+{
+	vector<string> paths = stringSplit(path, '/');
+	if (paths.size() == 0)
+	{
+		cout << "路径无效!" << endl;
+		throw(EINVAL);
+		return -1;
+	}
+	string name = paths[paths.size() - 1];
+	if (name.size() > NUM_FILE_NAME)
+	{
+		cout << "文件名过长!" << endl;
+		throw(ENAMETOOLONG);
+		return -1;
+	}
+	else if (name.size() == 0)
+	{
+		cout << "文件名不能为空!" << endl;
+		throw(EINVAL);
+		return -1;
+	}
+
+	Inode *fatherInode;
+
+	// 从路径中删除文件名
+	path.erase(path.size() - name.size(), name.size());
+	// 找到想要创建的文件的父文件夹相应的Inode
+	fatherInode = this->NameI(path);
+
+	// 没有找到相应的Inode
+	if (fatherInode == NULL)
+	{
+		cout << "没有找到"<< path << endl;
+		throw(ENOENT);
+		return -1;
+	}
+	// 如果找到，判断创建的文件的父文件夹是不是文件夹类型
+	if (!(fatherInode->i_mode & Inode::INodeMode::IDIR))
+	{
+		cout << "不是一个正确的目录项!" << endl;
+		throw(ENOTDIR);
+		return -1;
+	}
+
+	// 如果找到，判断是否有权限写文件
+	if (this->Access(fatherInode, FileMode::EXC) == 0)
+	{
+		cout << "没有权限写文件!" << endl;
+		throw(EACCES);
+		return -1;
+	}
+
+	// 普通情况，删除子文件
+	// 当有权限写文件时，判断是否有重名文件而且查看是否有空闲的子目录可以写
+	// 计算要读的物理盘块号
+	// 由于目录文件只占一个盘块，所以只有一项不为空
+	int blkno = fatherInode->Bmap(0);
+	// 读取磁盘的数据
+	Buf *fatherBuf = this->bufManager->Bread(blkno);
+	// 将数据转为目录结构
+	Directory *fatherDir = char2Directory(fatherBuf->b_addr);
+	bool isFind = false;
+	int iinDir = 0;
+	for (int i = 0; i < NUM_SUB_DIR; i++)
+	{
+		// 如果找到对应文件
+		if (!isFind && name == fatherDir->d_filename[i])
+		{
+			isFind = true;
+			iinDir = i;
+		}
+	}
+
+	if (!iinDir)
+	{
+		cout << "未找到所要删除的文件!" << endl;
+		return -1;
+	}
+
+	// 获取所要删除的文件的Inode
+	Inode *pDeleteInode = this->IGet(fatherDir->d_inodenumber[iinDir]);
+	if (NULL == pDeleteInode) // 这样的情况应该不存在，但是写一下
+	{
+		cout << "未找到所要删除的文件!" << endl;
+		return -1;
+	}
+	if (pDeleteInode->i_mode & Inode::INodeMode::IDIR) // 如果是文件夹类型
+	{
+		cout << "请输入正确的文件名!" << endl;
+		return -1;
+	}
+
+	// 如果找到，判断是否有权限删除文件
+	if (this->Access(pDeleteInode, FileMode::EXC) == 0)
+	{
+		cout << "没有权限删除文件!" << endl;
+		throw(EACCES);
+		return -1;
+	}
+
+	// 删除父目录下的文件项
+	fatherDir->deletei(iinDir);
+	fatherInode->i_size -= sizeof(Directory) / NUM_SUB_DIR; // 父亲的大小减小一个目录项
+	memcpy(fatherBuf->b_addr, directory2Char(fatherDir), sizeof(Directory));
+
+	// 统一写回：父目录inode 父目录数据块
+	fatherInode->WriteI();
+	this->bufManager->Bwrite(fatherBuf);
+
+	// 释放所有Inode
+	if (fatherInode != this->rootDirInode && fatherInode != this->curDirInode)
+		this->IPut(fatherInode);
+
+	// 释放Inode
+	pDeleteInode->i_nlink--;
+	this->IPut(pDeleteInode); // 当i_nlink为0时，会释放Inode
+
+	return 0;
 }
 
 /// @brief 写文件

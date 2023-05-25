@@ -13,6 +13,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <iomanip>
 #include <map>
 #include "errno.h"
 using namespace std;
@@ -266,6 +267,7 @@ public:
 	// 获取目录内容
 	Directory *GetDir();
 
+	// 释放数据盘块
 	void ITrunc();
 };
 
@@ -309,9 +311,6 @@ public:
 
 	// 将缓存块延迟写
 	void Bdwrite(Buf *bp);
-
-	// 一步一步延迟写
-	// void bwrite(const char *buf, unsigned int start_addr, unsigned int size);
 
 	// 根据物理设备块号读取缓存
 	Buf *Bread(int blkno);
@@ -415,6 +414,8 @@ public:
 	void fwrite(const char *buffer, int count, File *fp);
 	// 移动文件指针
 	int fseek(File *fp, int offset, int mode);
+	// 删除文件
+	int fdelete(string path);
 
 	Directory getDir();
 
@@ -429,6 +430,7 @@ public:
 
 	void openFile(string path);
 	void createFile(string path);
+	void removefile(string path);
 	void closeFile(string path);
 	void writeFile(string path, int offset, int mode);
 	void printFile(string path);
@@ -439,6 +441,7 @@ public:
 	void relogin();
 	void adduser();
 	void deluser();
+	void printUserList();
 
 	void help();
 	void format();

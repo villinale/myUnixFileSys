@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 20:19:00
+ * @LastEditTime: 2023-05-25 21:30:38
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -16,7 +16,7 @@ void FileSystem::help()
     printf("下列命令中带'<>'的项是必须的，带'[]'的项是可选择的\n");
     printf("请注意：本系统中路径用'/'分隔，windows系统路径用'\\'分割\n");
     printf("        VS中默认编码是GBK,想要正确输出文件内容，请保持编码一致\n");
-    cout << "        \033[31m请勿随便关掉控制台,想要正确退出系统一定要输入exit\033[0m"; // 设置用红色字打印出来
+    cout << "        \033[31m请勿随便关掉控制台,想要正确退出系统一定要输入exit\033[0m\n"; // 设置用红色字打印出来
     printf("--------------目录相关---------------\n");
     printf("ls                                      查看当前目录下的子目录\n");
     printf("cd    <dir-name>                        打开在当前目录下名称为dir-name的子目录\n");
@@ -24,6 +24,7 @@ void FileSystem::help()
     printf("rmdir <dir-name>                        删除在当前目录下名称为dir-name的子目录\n");
     printf("--------------文件相关---------------\n");
     printf("touch <file-name>                       在当前目录下创建名称为file-name的文件\n");
+    printf("rm    <file-name>                       删除当前目录里名称为file-name的文件\n");
     printf("open  <file-name>                       打开当前目录里名称为file-name的文件\n");
     printf("close <file-name>                       关闭当前目录里名称为file-name的文件\n");
     printf("print <file-name>                       读取并打印当前目录里名称为file-name的文件内容(需要先打开文件)\n");
@@ -39,6 +40,7 @@ void FileSystem::help()
     printf("relogin                                 重新登录,会关闭所有的文件,完成之前所有的任务\n");
     printf("adduser                                 添加新用户,但是只能由root用户操作\n");
     printf("deluser                                 删除用户,但是只能由root用户操作\n");
+    printf("listuser                                打印所有用户信息\n");
     printf("----------------其他----------------\n");
     printf("format                                  格式化文件系统\n");
     printf("exit                                    退出系统\n");
@@ -273,6 +275,17 @@ void FileSystem::createFile(string path)
     int res = this->fcreate(path);
 }
 
+void FileSystem::removefile(string path)
+{
+    int fd = this->openFileMap[this->GetAbsolutionPath(path)];
+    if (fd != 0)
+    {
+        cout << "文件已打开!请先关闭文件" << endl;
+        return;
+    }
+    int res = this->fdelete(this->curDir + path);
+}
+
 void FileSystem::printFile(string path)
 {
     int fd = this->openFileMap[this->GetAbsolutionPath(path)];
@@ -425,9 +438,9 @@ void FileSystem::prin0penFileList()
         cout << "无打开文件!" << endl;
         return;
     }
-    cout << "文件名路径\t\t文件描述符\t\t文件指针" << endl;
+    cout << std::left << setw(20) << "文件名路径" << setw(10) << "文件描述符" << setw(10) << "文件指针" << endl;
     for (const auto &pair : this->openFileMap)
-        cout << pair.first << "\t\t" << pair.second << "\t\t" << this->openFileTable[pair.second - 1].f_offset << endl;
+        cout << std::left << setw(20) << pair.first << setw(10) << pair.second << setw(10) << this->openFileTable[pair.second - 1].f_offset << endl;
     cout << endl;
 }
 
@@ -528,6 +541,16 @@ void FileSystem::deluser()
     return;
 }
 
+void FileSystem::printUserList()
+{
+    cout << "用户信息列表:" << endl;
+    cout << std::left << setw(10) << "用户id" << setw(25) << "用户名" << setw(10) << "用户组id" << endl;
+    for (int i = 0; i < NUM_USER; i++)
+        if (this->userTable->u_id[i] != -1)
+            cout << std::left << setw(10) << this->userTable->u_id[i] << setw(25) << this->userTable->u_name[i] << setw(5) << this->userTable->u_gid[i] << endl;
+    cout << endl;
+}
+
 void FileSystem::format()
 {
     cout << this->curName << this->curDir << ">"
@@ -614,6 +637,15 @@ void FileSystem::fun()
                 }
                 this->createFile(input[1]);
             }
+            else if (input[0] == "rm")
+            {
+                if (input.size() < 2 || input.size() > 2)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->removefile(input[1]);
+            }
             else if (input[0] == "open")
             {
                 if (input.size() < 2 || input.size() > 2)
@@ -680,6 +712,7 @@ void FileSystem::fun()
                 this->prin0penFileList();
             }
 
+            // 用户相关
             else if (input[0] == "relogin")
             {
                 if (input.size() < 1 || input.size() > 1)
@@ -706,6 +739,15 @@ void FileSystem::fun()
                     continue;
                 }
                 this->deluser();
+            }
+            else if (input[0] == "listuser")
+            {
+                if (input.size() < 1 || input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->printUserList();
             }
 
             else if (input[0] == "format")
