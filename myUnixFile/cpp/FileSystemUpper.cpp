@@ -562,7 +562,7 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 		return;
 	}
 
-	if (count + fp->f_offset > SIZE_BLOCK * NUM_I_ADDR)
+	if (count + fp->f_offset > SIZE_BLOCK * NUM_BLOCK_ILARG)
 	{
 		cout << "写入文件太大!" << endl;
 		throw(EFBIG);

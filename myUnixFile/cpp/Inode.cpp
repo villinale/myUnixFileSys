@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 20:54:47
+ * @LastEditTime: 2023-05-26 11:28:14
  * @Description: Inode类相关操作
  */
 
@@ -34,30 +34,65 @@ int Inode::Bmap(int lbn)
 {
     /*
      * MyFileManager的文件索引结构：(小型、大型文件)
-     * (1) i_addr[0] - i_addr[9]为直接索引表，文件长度范围是0 ~ 9个盘块
+     * (1) i_addr[0] - i_addr[7]为直接索引表，文件长度范围是0 ~ 8个盘块
+     * (2) i_addr[8] - i_addr[9]为一次间接索引表所在磁盘块号，每磁盘块
+     * 上存放128个(512/4)文件数据盘块号，此类文件长度范围是9 - (128 * 2 + 8)个盘块；
      */
 
-    Buf *pFirstBuf;
-    int phyBlkno = this->i_addr[lbn]; // 转换后的物理盘块号
+    Buf *pFirstBuf, *pSecondBuf;
+    int phyBlkno; // 转换后的物理盘块号
     BufferManager *bufMgr = fs.GetBufferManager();
 
-    /*
-     * 如果该逻辑块号还没有相应的物理盘块号与之对应，则分配一个物理块。
-     * 这通常发生在对文件的写入，当写入位置超出文件大小，即对当前
-     * 文件进行扩充写入，就需要分配额外的磁盘块，并为之建立逻辑块号
-     * 与物理盘块号之间的映射。
-     */
-    if (phyBlkno == 0 && (pFirstBuf = fs.Alloc()) != NULL)
+    // 底下每一次的Alloc都会有Bdwrite
+    if (lbn < NUM_BLOCK_IFILE)
     {
-        /*
-         * 因为后面很可能马上还要用到此处新分配的数据块，所以不急于立刻输出到
-         * 磁盘上；而是将缓存标记为延迟写方式，这样可以减少系统的I/O操作。
-         * 这里好厉害！！！
-         */
-        bufMgr->Bdwrite(pFirstBuf);
-        phyBlkno = pFirstBuf->b_blkno;
-        /* 将逻辑块号lbn映射到物理盘块号phyBlkno */
-        this->i_addr[lbn] = phyBlkno;
+        phyBlkno = this->i_addr[lbn];
+        if (phyBlkno == 0 && (pFirstBuf = fs.Alloc()) != NULL) // 虽然这里有Alloc，接下来就会有Bdwrite
+        {
+            /*
+             * 因为后面很可能马上还要用到此处新分配的数据块，所以不急于立刻输出到
+             * 磁盘上；而是将缓存标记为延迟写方式，这样可以减少系统的I/O操作。
+             * 这里好厉害！！！
+             */
+            bufMgr->Bdwrite(pFirstBuf);
+            phyBlkno = pFirstBuf->b_blkno;
+            // 将逻辑块号lbn映射到物理盘块号phyBlkno
+            this->i_addr[lbn] = phyBlkno;
+        }
+    }
+    else
+    {
+        int index = (lbn - NUM_BLOCK_IFILE) / NUM_FILE_INDEX;
+        phyBlkno = this->i_addr[index];
+        if (phyBlkno == 0)
+        {
+            this->i_mode |= Inode::ILARG;
+            // 分配一空闲盘块存放间接索引表
+            if ((pFirstBuf = fs.Alloc()) == NULL) // 这里有Alloc，但是接下来就会有Bdwrite
+                return 0;
+            // i_addr[index]中记录间接索引表的物理盘块号
+            this->i_addr[index] = pFirstBuf->b_blkno;
+        }
+        else
+        {
+            // 读出存储间接索引表的字符块
+            pFirstBuf = bufMgr->Bread(phyBlkno);
+        }
+
+        int *p = (int *)pFirstBuf->b_addr;
+
+        // 计算在间接索引表中的偏移量
+        index = (lbn - NUM_BLOCK_IFILE) % NUM_FILE_INDEX;
+
+        if ((phyBlkno = p[index]) == 0 && (pSecondBuf = fs.Alloc()) != NULL)
+        {
+            // 将分配到的文件数据盘块号登记在一次间接索引表中
+            phyBlkno = pSecondBuf->b_blkno;
+            p[index] = phyBlkno;
+            // 将数据盘块、更改后的一次间接索引表用延迟写方式输出到磁盘
+            bufMgr->Bdwrite(pSecondBuf);
+            bufMgr->Bdwrite(pFirstBuf);
+        }
     }
 
     return phyBlkno;
@@ -160,11 +195,25 @@ int Inode::GetParentInumber()
 void Inode::ITrunc()
 {
     BufferManager *bufMgr = fs.GetBufferManager();
+
     for (int i = 0; i < NUM_I_ADDR; i++)
     {
         if (this->i_addr[i] != 0)
         {
-            fs.Free(this->i_addr[i]);
+            if (i < NUM_BLOCK_IFILE) // 释放直接索引项
+                fs.Free(this->i_addr[i]);
+            else
+            {
+                // 释放一次间接索引项
+                Buf *pFirstBuf = bufMgr->Bread(this->i_addr[i]);
+                int *p = (int *)pFirstBuf->b_addr;
+                for (int j = 0; j < NUM_FILE_INDEX; j++)
+                {
+                    if (p[j] != 0)
+                        fs.Free(p[j]);
+                }
+                fs.Free(this->i_addr[i]);
+            }
             this->i_addr[i] = 0;
         }
     }

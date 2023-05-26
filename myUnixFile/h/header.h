@@ -55,7 +55,6 @@ static const int NUM_BLOCK = NUM_BLOCK_ALL - POSITION_DISKINODE - NUM_DISKINODE 
 static const unsigned int POSITION_BLOCK = int(POSITION_DISKINODE + SIZE_DISKINODE * NUM_DISKINODE / SIZE_BLOCK);
 
 // 规定：User内容最多占一个BLOCK，即:NUM_USER*(NUM_USER_NAME+NUM_USER_PASSWORD)<=BLOCK_SIZE
-// 规定：User内容在数据区的第二个Block中
 // User中最多用户数
 static const int NUM_USER = 8;
 // User用户名称的最大长度
@@ -82,9 +81,14 @@ static const unsigned int POSITION_DIRECTORY = POSITION_BLOCK;
 static const int NUM_FILE = 100;
 // FileSystem:IndoeTable中最多Inode数
 static const int NUM_INODE = 100;
+// 大型文件使用的最多的盘块数量
+static const int NUM_FILE_INDEX = SIZE_BLOCK / sizeof(int);
+static const int NUM_BLOCK_IFILE = 8;
+static const int NUM_BLOCK_ILARG = NUM_FILE_INDEX * 2 + NUM_BLOCK_IFILE;
 
 // 实现字符串分割
-vector<string> stringSplit(const string &strIn, char delim);
+vector<string>
+stringSplit(const string &strIn, char delim);
 
 /*
  * 用户User类的定义
@@ -131,20 +135,20 @@ public:
 	void deletei(int iloc);
 };
 
-//文件系统存储资源管理块(Super Block)的定义。
+// 文件系统存储资源管理块(Super Block)的定义。
 class SuperBlock
 {
 public:
-	unsigned int s_isize; // Inode区占用的盘块数 
-	unsigned int s_fsize; // 盘块总数 
+	unsigned int s_isize; // Inode区占用的盘块数
+	unsigned int s_fsize; // 盘块总数
 
 	unsigned int s_ninode;				  // 直接管理的空闲外存Inode数量
 	unsigned int s_inode[NUM_FREE_INODE]; // 直接管理的空闲外存Inode索引表
 
-	unsigned int s_nfree;					   // 直接管理的空闲盘块数量 
-	unsigned int s_free[NUM_FREE_BLOCK_GROUP]; // 直接管理的空闲盘块索引表 
-	char padding[SIZE_PADDING]; // 填充使SuperBlock块大小等于1024字节，占据2个扇区,非常有必要！！！！
-								//我使用了char而已
+	unsigned int s_nfree;					   // 直接管理的空闲盘块数量
+	unsigned int s_free[NUM_FREE_BLOCK_GROUP]; // 直接管理的空闲盘块索引表
+	char padding[SIZE_PADDING];				   // 填充使SuperBlock块大小等于1024字节，占据2个扇区,非常有必要！！！！
+											   // 我使用了char而已
 
 	// 初始化SuperBlock
 	void Init();
@@ -219,8 +223,8 @@ public:
 	enum INodeMode
 	{
 		IDIR = 0x4000,	// 文件类型：目录文件
-		IFILE = 0x2000, // 文件类型：普通小文件
-		ILARG = 0x1000, // 文件类型：大文件
+		IFILE = 0x2000, // 文件类型：文件
+		ILARG = 0x1000, // 文件类型：大文件,有ILARG必有IFILE
 		OWNER_R = 0x400,
 		OWNER_W = 0x200,
 		OWNER_X = 0x100,
