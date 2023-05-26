@@ -121,7 +121,8 @@ int FileSystem::fcreate(string path)
 	// 将文件写入目录项中
 	fatherDir->mkdir(name.c_str(), newinode->i_number);
 	// 将父目录写回磁盘中，因为一个目录项就是一个盘块大小，直接修改了b_addr，其实并不安全，
-	// 果然有问题啊这句话！！！！fatherBuf->b_addr = directory2Char(fatherDir);
+	// fatherBuf->b_addr = directory2Char(fatherDir);
+	// 果然有问题啊这句话！！！！
 	memcpy(fatherBuf->b_addr, directory2Char(fatherDir), sizeof(Directory));
 	this->bufManager->Bwrite(fatherBuf);
 	// this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));

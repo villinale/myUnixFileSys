@@ -1,3 +1,10 @@
+/*
+ * @Author: yingxin wang
+ * @Date: 2023-05-24 11:09:29
+ * @LastEditors: yingxin wang
+ * @LastEditTime: 2023-05-26 01:03:25
+ * @Description: 请填写简介
+ */
 #include "../h/header.h"
 #include "../h/errno.h"
 #include "../h/Utility.h"
@@ -48,13 +55,13 @@ void SuperBlock::Init()
         {
             stack[1] = 0;
             j++;
-        }                     // TODO:这好像有点问题
+        }
         for (; j < endi; j++) // 循环写入链接的上一组盘块号
             stack[j - starti + 1] = j;
         // 将组内第一个盘块写入磁盘
         // bufManager->bwrite(uintArray2Char(stack, inum + 1), istart_addr, (inum + 1) * sizeof(int));
         bp = bufManager->GetBlk(iblk);
-        //这里之前有内存泄漏
+        // 这里之前有内存泄漏
         memcpy(bp->b_addr, uintArray2Char(stack, inum + 1), (inum + 1) * sizeof(char));
         bufManager->Bwrite(bp);
 

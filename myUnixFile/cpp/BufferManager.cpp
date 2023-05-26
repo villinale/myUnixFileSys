@@ -39,8 +39,9 @@ BufferManager::BufferManager()
         this->m_Buf[i].b_forw = (i - 1 >= 0) ? (&m_Buf[i - 1]) : (&bFreeList);
         // 后继节点
         this->m_Buf[i].b_back = (i + 1 < NUM_BUF) ? (&m_Buf[i + 1]) : (&bFreeList);
+        // 源码是这样的，不断地把新的放到bFreeList队头，最终是反着链接
         // 上一个空闲缓存控制块的指针
-        this->m_Buf[i].av_forw = (i + 1 < NUM_BUF) ? (&m_Buf[i - 1]) : (&bFreeList);
+        this->m_Buf[i].av_forw = (i + 1 < NUM_BUF) ? (&m_Buf[i + 1]) : (&bFreeList);
         // 下一个空闲缓存控制块的指针
         this->m_Buf[i].av_back = (i - 1 >= 0) ? (&m_Buf[i - 1]) : (&bFreeList);
     }
@@ -90,14 +91,11 @@ Buf *BufferManager::GetBlk(int blkno)
 
     bp->b_flags = Buf::B_NONE;
 
-    // 从原设备队列中抽出
-    bp->b_back->b_forw = bp->b_forw;
-    bp->b_forw->b_back = bp->b_back;
-    // 加入新的设备队列
-    bp->b_forw = this->devtab.b_forw;
-    bp->b_back = &(this->devtab);
-    this->devtab.b_forw->b_back = bp;
-    this->devtab.b_forw = bp;
+    // 加入设备队列队头
+    this->devtab.b_back->b_forw = bp;
+    bp->b_back = this->devtab.b_back;
+    bp->b_forw = &(this->devtab);
+    this->devtab.b_back = bp;
 
     bp->b_blkno = blkno;
     return bp;
@@ -107,11 +105,11 @@ Buf *BufferManager::GetBlk(int blkno)
 /// @param bp 缓存块
 void BufferManager::Bwrite(Buf *bp)
 {
-    // 将缓存放入设备的I/O请求队列队尾
+    // 将缓存放入设备队列队尾
+    this->devtab.av_forw->av_back = bp;
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
-    bp->av_forw->av_back = bp;
-    bp->av_back->av_forw = bp;
+    this->devtab.av_forw = bp;
 
     // 开始写操作
     bp->b_flags |= Buf::B_WRITE;
@@ -137,7 +135,7 @@ void BufferManager::Bwrite(Buf *bp)
     bp->av_back->av_forw = bp->av_forw;
     // 加入自由队列
     bp->av_forw = (this->bFreeList).av_forw;
-    bp->av_back = &((this->bFreeList));
+    bp->av_back = &(this->bFreeList);
     bp->av_forw->av_back = bp;
     bp->av_back->av_forw = bp;
 }
@@ -145,10 +143,10 @@ void BufferManager::Bwrite(Buf *bp)
 void BufferManager::Bdwrite(Buf *bp)
 {
     // 将缓存放入设备的I/O请求队列队尾
+    this->devtab.av_forw->av_back = bp;
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
-    bp->av_forw->av_back = bp;
-    bp->av_back->av_forw = bp;
+    this->devtab.av_forw = bp;
 
     // 标记为延迟写
     bp->b_flags |= (Buf::B_DELWRI | Buf::B_DONE);
@@ -177,12 +175,12 @@ Buf *BufferManager::Bread(int blkno)
         return bp;
     }
 
-    // 没有找到相应缓存,I/O读操作，送入I/O请求队列
+    // 没有找到相应缓存,I/O读操作，设备请求队列队尾
     bp->b_flags |= Buf::B_READ;
+    this->devtab.av_forw->av_back = bp;
     bp->av_forw = this->devtab.av_forw;
     bp->av_back = &(this->devtab);
-    bp->av_forw->av_back = bp;
-    bp->av_back->av_forw = bp;
+    this->devtab.av_forw = bp;
 
     // 开始读操作
     fstream fin;
