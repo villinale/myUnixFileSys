@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 16:45:32
+ * @LastEditTime: 2023-05-26 17:22:10
  * @Description: Inode类相关操作
  */
 
@@ -121,10 +121,12 @@ void Inode::ICopy(Buf *bp, int inumber)
 }
 
 /// @brief 根据规则给内存Inode赋予文件权限
-/// @return unsigned short 返回文件权限
-unsigned short Inode::AssignMode(short id, short gid)
+/// @return int 正确返回0，错误返回-1
+int Inode::AssignMode(unsigned short mode)
 {
-    return 0;
+    if (mode & Inode::IFILE || mode & Inode::IDIR || mode & Inode::ILARG)
+        return -1;
+    this->i_mode = mode;
 }
 
 /// @brief 清空Inode内容

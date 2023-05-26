@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 16:43:35
+ * @LastEditTime: 2023-05-26 17:23:21
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -238,6 +238,12 @@ void FileSystem::dir()
     cout << "下面是" << this->curDir << "目录下的文件:" << endl;
     Directory *dir = this->curDirInode->GetDir();
     int i;
+    cout << std::left << setw(12) << "所有权限"
+         << std::left << setw(12) << "当前权限"
+         << std::left << setw(20) << "修改时间"
+         << std::left << setw(10) << "文件类型"
+         << std::left << setw(15) << "文件大小"
+         << std::left << "文件名" << endl;
     for (i = 0; i < NUM_SUB_DIR; i++)
     {
         if (dir->d_inodenumber[i] == 0)
@@ -245,14 +251,18 @@ void FileSystem::dir()
         Inode *p = this->IGet(dir->d_inodenumber[i]);
         string time = timestampToString(p->i_mtime);
         if (p->i_mode & Inode::INodeMode::IFILE)
-            cout << p->GetModeString(this->curId, this->userTable->GetGId(this->curId)) << "  "
-                 << time << std::right << setw(8) << " "
-                 << std::right << setw(8) << p->i_size
+            cout << std::left << setw(12) << mode2String(p->i_mode)
+                 << std::left << setw(12) << p->GetModeString(this->curId, this->userTable->GetGId(this->curId))
+                 << std::left << setw(20) << time
+                 << std::left << setw(10) << " "
+                 << std::left << setw(15) << p->i_size
                  << std::left << dir->d_filename[i] << endl;
         else if (p->i_mode & Inode::INodeMode::IDIR)
-            cout << p->GetModeString(this->curId, this->userTable->GetGId(this->curId)) << "  "
-                 << time << std::right << setw(8) << "<DIR>"
-                 << std::right << setw(8) << " "
+            cout << std::left << setw(12) << mode2String(p->i_mode)
+                 << std::left << setw(12) << p->GetModeString(this->curId, this->userTable->GetGId(this->curId))
+                 << std::left << setw(20) << time
+                 << std::left << setw(10) << "<DIR>"
+                 << std::left << setw(15) << " "
                  << std::left << dir->d_filename[i] << endl;
         this->IPut(p);
     }
@@ -473,6 +483,27 @@ void FileSystem::prin0penFileList()
     for (const auto &pair : this->openFileMap)
         cout << std::left << setw(20) << pair.first << setw(10) << pair.second << setw(10) << this->openFileTable[pair.second - 1].f_offset << endl;
     cout << endl;
+}
+
+void FileSystem::chmod(string path, int mode)
+{
+    if (this->curId != 0)
+    {
+        cout << "只有root用户才能修改文件权限!" << endl;
+        return;
+    }
+    Inode *p = this->NameI(path);
+    if (p == NULL)
+    {
+        cout << "文件不存在!" << endl;
+        return;
+    }
+
+    int res = p->AssignMode(mode);
+    if (res == 0)
+        cout << "修改成功!" << endl;
+    else
+        cout << "不能改变文件属性!" << endl;
 }
 
 void FileSystem::login()

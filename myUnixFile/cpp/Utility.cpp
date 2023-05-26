@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-14 11:37:44
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 16:43:19
+ * @LastEditTime: 2023-05-26 16:55:58
  * @Description: 请填写简介
  */
 #include "../h/Utility.h"
@@ -154,4 +154,33 @@ string timestampToString(unsigned int timestamp)
     strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeInfo);
 
     return string(buffer);
+}
+
+string mode2String(unsigned short mode)
+{
+    /*
+        OWNER_R = 0x400,
+        OWNER_W = 0x200,
+        OWNER_X = 0x100,
+        GROUP_R = 0x40,
+        GROUP_W = 0x20,
+        GROUP_X = 0x10,
+        OTHER_R = 0x4,
+        OTHER_W = 0x2,
+        OTHER_X = 0x1,*/
+    std::string permissionString;
+
+    // 所有者权限
+    permissionString += (mode & Inode::OWNER_R) ? "r" : "-";
+    permissionString += (mode & Inode::OWNER_W) ? "w" : "-";
+
+    // 组权限
+    permissionString += (mode & Inode::GROUP_R) ? "r" : "-";
+    permissionString += (mode & Inode::GROUP_W) ? "w" : "-";
+
+    // 其他用户权限
+    permissionString += (mode & Inode::OTHER_R) ? "r" : "-";
+    permissionString += (mode & Inode::OTHER_W) ? "w" : "-";
+
+    return permissionString;
 }

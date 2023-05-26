@@ -258,7 +258,7 @@ public:
 	void ICopy(Buf *bp, int inumber);
 
 	// 根据规则给内存Inode赋予文件权限
-	unsigned short AssignMode(short id, short gid);
+	int AssignMode(unsigned short mode);
 
 	// 清空Inode内容
 	void Clean();
