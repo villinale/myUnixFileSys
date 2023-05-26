@@ -225,15 +225,12 @@ public:
 		IDIR = 0x4000,	// 文件类型：目录文件
 		IFILE = 0x2000, // 文件类型：文件
 		ILARG = 0x1000, // 文件类型：大文件,有ILARG必有IFILE
-		OWNER_R = 0x400,
-		OWNER_W = 0x200,
-		OWNER_X = 0x100,
-		GROUP_R = 0x40,
-		GROUP_W = 0x20,
-		GROUP_X = 0x10,
-		OTHER_R = 0x4,
-		OTHER_W = 0x2,
-		OTHER_X = 0x1,
+		OWNER_R = 0x200,
+		OWNER_W = 0x100,
+		GROUP_R = 0x20,
+		GROUP_W = 0x10,
+		OTHER_R = 0x2,
+		OTHER_W = 0x1,
 	};
 
 public:
@@ -246,8 +243,8 @@ public:
 	int i_size;				// 文件大小，字节为单位
 	int i_addr[NUM_I_ADDR]; // 指向数据块区，用于文件逻辑块号和物理块号转换的基本索引表
 
-	int i_atime; // 最后访问时间
-	int i_mtime; // 最后修改时间
+	unsigned int i_atime; // 最后访问时间
+	unsigned int i_mtime; // 最后修改时间
 
 	short i_count;	// 引用计数
 	short i_number; // 在inode区中的编号,放到最后以便于将内存Inode转换为外存Inode
@@ -277,6 +274,9 @@ public:
 
 	// 释放数据盘块
 	void ITrunc();
+
+	// 根据id和gid获取文件权限字符串
+	string GetModeString(int id, int gid);
 };
 
 /*
@@ -382,9 +382,8 @@ private:
 public:
 	enum FileMode
 	{
-		READ = 0x1,	 // 读
-		WRITE = 0x2, // 写
-		EXC = 0x4	 // 执行，相当于打开文件
+		READ = 0x1, // 读
+		WRITE = 0x2 // 写
 	};
 
 	FileSystem();
@@ -434,6 +433,7 @@ public:
 	void cd(string subname);
 	void rmdir(string subname);
 	void mkdirout(string subname);
+	void dir();
 
 	void openFile(string path);
 	void createFile(string path);
@@ -444,6 +444,7 @@ public:
 	void cpfwin(string path);
 	void cpffs(string filename, string winpath);
 	void prin0penFileList();
+	void chmod(string path, int mode);
 
 	void relogin();
 	void adduser();

@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 11:28:14
+ * @LastEditTime: 2023-05-26 16:45:32
  * @Description: Inode类相关操作
  */
 
@@ -191,7 +191,6 @@ int Inode::GetParentInumber()
 }
 
 /// @brief 释放数据盘块
-// TODO:如果修改为大文件这里要改
 void Inode::ITrunc()
 {
     BufferManager *bufMgr = fs.GetBufferManager();
@@ -231,4 +230,28 @@ Directory *Inode::GetDir()
 
     Buf *bp = bufMgr->Bread(this->i_addr[0]);
     Directory *dir = char2Directory(bp->b_addr);
+}
+
+// 根据id和gid获取文件权限字符串
+string Inode::GetModeString(int id, int gid)
+{
+    string permissionString;
+
+    if (id == this->i_uid)
+    {
+        // 所有者权限
+        permissionString += (this->i_mode & OWNER_R) ? "r" : "-";
+        permissionString += (this->i_mode & OWNER_W) ? "w" : "-";
+    }
+    else if (gid == this->i_gid)
+    {
+        permissionString += (this->i_mode & GROUP_R) ? "r" : "-";
+        permissionString += (this->i_mode & GROUP_W) ? "w" : "-";
+    }
+    else
+    {
+        permissionString += (this->i_mode & OTHER_R) ? "r" : "-";
+        permissionString += (this->i_mode & OTHER_W) ? "w" : "-";
+    }
+    return permissionString;
 }

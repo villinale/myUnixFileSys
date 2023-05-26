@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:31:20
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 19:32:00
+ * @LastEditTime: 2023-05-26 16:49:28
  * @Description: FileSystem内部调用的各个函数内容
  */
 #include "../h/header.h"
@@ -160,9 +160,7 @@ int FileSystem::Access(Inode *pInode, unsigned int mode)
     // 如果是文件所有者
     if (this->curId == pInode->i_uid)
     {
-        if (mode == FileMode::EXC)
-            return pInode->i_mode & Inode::INodeMode::OWNER_X;
-        else if (mode == FileMode::WRITE) // 写权力前提是有读权力
+        if (mode == FileMode::WRITE) // 写权力前提是有读权力
             return (pInode->i_mode & Inode::INodeMode::OWNER_R) && (pInode->i_mode & Inode::INodeMode::OWNER_W);
         else if (mode == FileMode::READ)
             return pInode->i_mode & Inode::INodeMode::OWNER_R;
@@ -173,9 +171,7 @@ int FileSystem::Access(Inode *pInode, unsigned int mode)
     // 如果是文件所有者所在的组
     if (this->curId == pInode->i_gid)
     {
-        if (mode == FileMode::EXC)
-            return pInode->i_mode & Inode::INodeMode::GROUP_X;
-        else if (mode == FileMode::WRITE) // 写权力前提是有读权力
+        if (mode == FileMode::WRITE) // 写权力前提是有读权力
             return (pInode->i_mode & Inode::INodeMode::GROUP_R) && (pInode->i_mode & Inode::INodeMode::GROUP_W);
         else if (mode == FileMode::READ)
             return pInode->i_mode & Inode::INodeMode::GROUP_R;
@@ -184,9 +180,7 @@ int FileSystem::Access(Inode *pInode, unsigned int mode)
     }
 
     // 如果是其他用户
-    if (mode == FileMode::EXC)
-        return pInode->i_mode & Inode::INodeMode::OTHER_X;
-    else if (mode == FileMode::WRITE) // 写权力前提是有读权力
+    if (mode == FileMode::WRITE) // 写权力前提是有读权力
         return (pInode->i_mode & Inode::INodeMode::GROUP_R) && (pInode->i_mode & Inode::INodeMode::OTHER_W);
     else if (mode == FileMode::READ)
         return pInode->i_mode & Inode::INodeMode::OTHER_R;
@@ -422,8 +416,8 @@ void FileSystem::IPut(Inode *pNode)
 /// @brief 将超级块写回磁盘
 void FileSystem::WriteSpb()
 {
-    char* p = spb2Char(this->spb);
-    Buf* bp = this->bufManager->Bread(POSITION_SUPERBLOCK);
+    char *p = spb2Char(this->spb);
+    Buf *bp = this->bufManager->Bread(POSITION_SUPERBLOCK);
     memcpy(bp->b_addr, p, SIZE_BUFFER);
     this->bufManager->Bwrite(bp);
     bp = this->bufManager->Bread(POSITION_SUPERBLOCK + 1);

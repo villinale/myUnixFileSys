@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-14 11:37:44
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-21 20:26:24
+ * @LastEditTime: 2023-05-26 16:43:19
  * @Description: «ÎÃÓ–¥ºÚΩÈ
  */
 #include "../h/Utility.h"
@@ -17,9 +17,9 @@ Directory *char2Directory(char *ch)
         Directory *objPtr = reinterpret_cast<Directory *>(ch);
         return objPtr;
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
@@ -31,9 +31,9 @@ SuperBlock *char2SuperBlock(char *ch)
         SuperBlock *objPtr = reinterpret_cast<SuperBlock *>(ch);
         return objPtr;
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
@@ -44,9 +44,9 @@ UserTable *char2UserTable(char *ch)
         UserTable *objPtr = reinterpret_cast<UserTable *>(ch);
         return objPtr;
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
@@ -60,9 +60,9 @@ char *directory2Char(Directory *dir)
         char *ch = reinterpret_cast<char *>(dir);
         return ch;
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
@@ -75,24 +75,24 @@ char *uintArray2Char(unsigned int *arr, int len)
             ch[i] = arr[i];
         return ch;
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
-char* spb2Char(SuperBlock* spb)
+char *spb2Char(SuperBlock *spb)
 {
     try
     {
-        char* ch = new char[sizeof(SuperBlock)+1];
+        char *ch = new char[sizeof(SuperBlock) + 1];
         ch[sizeof(SuperBlock)] = '\0';
-        memcpy(ch,reinterpret_cast<char*>(spb), sizeof(SuperBlock)); 
+        memcpy(ch, reinterpret_cast<char *>(spb), sizeof(SuperBlock));
         return ch;
     }
-    catch (std::exception& e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
@@ -104,9 +104,9 @@ char *userTable2Char(UserTable *user)
         char *ch = reinterpret_cast<char *>(user);
         return ch;
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
@@ -120,9 +120,9 @@ DiskInode *char2DiskInode(char *ch)
         DiskInode *objPtr = reinterpret_cast<DiskInode *>(ch);
         return objPtr;
     }
-    catch (std::exception &e)
+    catch (exception &e)
     {
-        std::cerr << "Exception caught: " << e.what() << std::endl;
+        cerr << "Exception caught: " << e.what() << endl;
     }
 }
 
@@ -143,4 +143,15 @@ vector<string> stringSplit(const string &strIn, char delim)
         splitted = strtok(NULL, s.c_str());
     }
     return elems;
+}
+
+string timestampToString(unsigned int timestamp)
+{
+    time_t t = static_cast<time_t>(timestamp);
+    tm *timeInfo = localtime(&t);
+
+    char buffer[80];
+    strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S", timeInfo);
+
+    return string(buffer);
 }

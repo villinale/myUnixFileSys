@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 21:07:26
+ * @LastEditTime: 2023-05-26 16:50:26
  * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
@@ -105,9 +105,9 @@ int FileSystem::fcreate(string path)
 	// 分配一个新的内存Inode
 	Inode *newinode = this->IAlloc();
 	newinode->i_mode = Inode::INodeMode::IFILE |
-					   Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W | Inode::INodeMode::OWNER_X |
-					   Inode::INodeMode::GROUP_R | Inode::INodeMode::GROUP_X |
-					   Inode::INodeMode::OTHER_R | Inode::INodeMode::OTHER_X;
+					   Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W |
+					   Inode::INodeMode::GROUP_R |
+					   Inode::INodeMode::OTHER_R;
 	newinode->i_nlink = 1;
 	newinode->i_uid = this->curId;
 	newinode->i_gid = this->userTable->GetGId(this->curId);
@@ -230,9 +230,9 @@ int FileSystem::mkdir(string path)
 	// 分配一个新的内存Inode
 	Inode *newinode = this->IAlloc();
 	newinode->i_mode = Inode::INodeMode::IDIR |
-					   Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W | Inode::INodeMode::OWNER_X |
-					   Inode::INodeMode::GROUP_R | Inode::INodeMode::GROUP_X |
-					   Inode::INodeMode::OTHER_R | Inode::INodeMode::OTHER_X;
+					   Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W |
+					   Inode::INodeMode::GROUP_R |
+					   Inode::INodeMode::OTHER_R;
 	newinode->i_nlink = 1;
 	newinode->i_uid = this->curId;
 	newinode->i_gid = this->userTable->GetGId(this->curId);
@@ -274,6 +274,7 @@ int FileSystem::mkdir(string path)
 /// @brief 退出系统
 void FileSystem::exit()
 {
+	this->curId = ROOT_ID; // 保证权限
 	// 将superblock写回磁盘
 	this->WriteSpb();
 	// 将userTable写回磁盘，
@@ -326,9 +327,9 @@ void FileSystem::fformat()
 	this->rootDirInode->i_uid = ROOT_ID;
 	this->rootDirInode->i_gid = this->userTable->GetGId(ROOT_ID);
 	this->rootDirInode->i_mode = Inode::INodeMode::IDIR |
-								 Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W | Inode::INodeMode::OWNER_X |
-								 Inode::INodeMode::GROUP_R | Inode::INodeMode::GROUP_X |
-								 Inode::INodeMode::OTHER_R | Inode::INodeMode::OTHER_X;
+								 Inode::INodeMode::OWNER_R | Inode::INodeMode::OWNER_W |
+								 Inode::INodeMode::GROUP_R |
+								 Inode::INodeMode::OTHER_R;
 	this->rootDirInode->i_nlink = 1;
 	this->rootDirInode->i_size = 0;
 	this->rootDirInode->i_mtime = unsigned int(time(NULL));
@@ -389,8 +390,8 @@ int FileSystem::fopen(string path)
 		return -1;
 	}
 
-	// 如果找到，判断是否有权限打开文件
-	if (this->Access(pinode, FileMode::EXC) == 0)
+	// 如果找到，判断是否有权限打开文件,其实是读
+	if (this->Access(pinode, FileMode::READ) == 0)
 	{
 		cout << "没有权限打开文件!" << endl;
 		throw(EACCES);
@@ -453,7 +454,7 @@ int FileSystem::fdelete(string path)
 	// 没有找到相应的Inode
 	if (fatherInode == NULL)
 	{
-		cout << "没有找到"<< path << endl;
+		cout << "没有找到" << path << endl;
 		throw(ENOENT);
 		return -1;
 	}
@@ -466,7 +467,7 @@ int FileSystem::fdelete(string path)
 	}
 
 	// 如果找到，判断是否有权限写文件
-	if (this->Access(fatherInode, FileMode::EXC) == 0)
+	if (this->Access(fatherInode, FileMode::WRITE) == 0)
 	{
 		cout << "没有权限写文件!" << endl;
 		throw(EACCES);
@@ -514,7 +515,7 @@ int FileSystem::fdelete(string path)
 	}
 
 	// 如果找到，判断是否有权限删除文件
-	if (this->Access(pDeleteInode, FileMode::EXC) == 0)
+	if (this->Access(pDeleteInode, FileMode::WRITE) == 0)
 	{
 		cout << "没有权限删除文件!" << endl;
 		throw(EACCES);
@@ -619,6 +620,8 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 
 	if (pInode->i_size < fp->f_offset)
 		pInode->i_size = fp->f_offset;
+
+	pInode->i_mtime = time(NULL);
 }
 
 /// @brief 移动文件指针
@@ -730,6 +733,8 @@ void FileSystem::fread(File *fp, char *&buffer, int count)
 		fp->f_offset += size;
 	}
 	buffer[count] = '\0'; // 设置结束标记
+
+	pInode->i_atime = time(NULL);
 }
 
 FileSystem::~FileSystem()

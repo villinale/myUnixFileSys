@@ -30,11 +30,9 @@
 
 changemode:修改文件权限
 
-DIR
-
-目前只支持一个盘块写目录项
-
 ### 备注
 
 用户信息在/etc/UsetTable.txt中，请勿胡乱修改。
+
+请使用GBK编码。
 

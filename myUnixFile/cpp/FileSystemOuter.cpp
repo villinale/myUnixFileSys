@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-25 21:30:38
+ * @LastEditTime: 2023-05-26 16:43:35
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -19,6 +19,7 @@ void FileSystem::help()
     cout << "        \033[31m请勿随便关掉控制台,想要正确退出系统一定要输入exit\033[0m\n"; // 设置用红色字打印出来
     printf("--------------目录相关---------------\n");
     printf("ls                                      查看当前目录下的子目录\n");
+    printf("dir                                     查看当前目录下的详细信息\n");
     printf("cd    <dir-name>                        打开在当前目录下名称为dir-name的子目录\n");
     printf("mkdir <dir-name>                        创建在当前目录下名称为dir-name的子目录\n");
     printf("rmdir <dir-name>                        删除在当前目录下名称为dir-name的子目录\n");
@@ -62,12 +63,12 @@ void FileSystem::init()
     this->bufManager = new BufferManager();
 
     // 读取超级块，超级块有两个！！
-    char* ch = new char[sizeof(SuperBlock)];
+    char *ch = new char[sizeof(SuperBlock)];
     Buf *buf = this->bufManager->Bread(POSITION_SUPERBLOCK);
     memcpy(ch, buf->b_addr, SIZE_BLOCK);
     buf = this->bufManager->Bread(POSITION_SUPERBLOCK + 1);
     memcpy(ch + SIZE_BLOCK, buf->b_addr, SIZE_BLOCK);
-    this->spb = char2SuperBlock(ch); //不能删掉ch
+    this->spb = char2SuperBlock(ch); // 不能删掉ch
 
     // 读取根目录Inode
     buf = this->bufManager->Bread(POSITION_DISKINODE);
@@ -230,6 +231,32 @@ void FileSystem::mkdirout(string subname)
 
     // 普通情况，创建子目录
     int res = this->mkdir(this->curDir + subname);
+}
+
+void FileSystem::dir()
+{
+    cout << "下面是" << this->curDir << "目录下的文件:" << endl;
+    Directory *dir = this->curDirInode->GetDir();
+    int i;
+    for (i = 0; i < NUM_SUB_DIR; i++)
+    {
+        if (dir->d_inodenumber[i] == 0)
+            break;
+        Inode *p = this->IGet(dir->d_inodenumber[i]);
+        string time = timestampToString(p->i_mtime);
+        if (p->i_mode & Inode::INodeMode::IFILE)
+            cout << p->GetModeString(this->curId, this->userTable->GetGId(this->curId)) << "  "
+                 << time << std::right << setw(8) << " "
+                 << std::right << setw(8) << p->i_size
+                 << std::left << dir->d_filename[i] << endl;
+        else if (p->i_mode & Inode::INodeMode::IDIR)
+            cout << p->GetModeString(this->curId, this->userTable->GetGId(this->curId)) << "  "
+                 << time << std::right << setw(8) << "<DIR>"
+                 << std::right << setw(8) << " "
+                 << std::left << dir->d_filename[i] << endl;
+        this->IPut(p);
+    }
+    cout << endl;
 }
 
 void FileSystem::openFile(string path)
@@ -629,6 +656,15 @@ void FileSystem::fun()
                     continue;
                 }
                 this->mkdirout(input[1]);
+            }
+            else if (input[0] == "dir")
+            {
+                if (input.size() < 1 || input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->dir();
             }
 
             // 文件管理
