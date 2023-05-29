@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 17:23:21
+ * @LastEditTime: 2023-05-26 19:52:01
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -12,7 +12,6 @@
 
 void FileSystem::help()
 {
-    // fformat\ls\mkdir\fcreat\fopen\fclose\fread\fwrite\flseek\fdelete
     printf("下列命令中带'<>'的项是必须的，带'[]'的项是可选择的\n");
     printf("请注意：本系统中路径用'/'分隔，windows系统路径用'\\'分割\n");
     printf("        VS中默认编码是GBK,想要正确输出文件内容，请保持编码一致\n");
@@ -29,6 +28,7 @@ void FileSystem::help()
     printf("open  <file-name>                       打开当前目录里名称为file-name的文件\n");
     printf("close <file-name>                       关闭当前目录里名称为file-name的文件\n");
     printf("print <file-name>                       读取并打印当前目录里名称为file-name的文件内容(需要先打开文件)\n");
+    printf("fseek <file-name> <offset>              移动文件指针offset个偏移量，可以为负\n");
     printf("write <file-name> [offset] [mode]       在当前目录里名称为file-name的文件里,选择从offset位置开始写入(需要先打开文件)\n");
     printf("                                        offset可选,输入整数,表示偏移量\n");
     printf("                                        mode可选,有三种模式:0表示从文件头+offset位置开始写,\n");
@@ -506,6 +506,31 @@ void FileSystem::chmod(string path, int mode)
         cout << "不能改变文件属性!" << endl;
 }
 
+void FileSystem::changeseek(string path, int offset)
+{
+    int fd = this->openFileMap[this->GetAbsolutionPath(path)];
+    if (fd == 0)
+    {
+        cout << "文件未打开!请先使用open指令打开文件" << endl;
+        return;
+    }
+
+    Inode *p = this->NameI(this->GetAbsolutionPath(path));
+    if (p == NULL)
+    {
+        cout << "文件不存在!" << endl;
+        return;
+    }
+    File *fp = &(this->openFileTable[fd - 1]);
+    if ((fp->f_offset + offset) < 0 || (fp->f_offset + offset) > p->i_size)
+    {
+        cout << "文件指针超出范围!" << endl;
+        return;
+    }
+    fp->f_offset += offset;
+    cout << "文件指针已移动到" << fp->f_offset << endl;
+}
+
 void FileSystem::login()
 {
     string name, pswd;
@@ -781,6 +806,15 @@ void FileSystem::fun()
                     continue;
                 }
                 this->prin0penFileList();
+            }
+            else if (input[0] == "fseek")
+            {
+                if (input.size() < 3 || input.size() > 3)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->changeseek(input[1], stoi(input[2]));
             }
 
             // 用户相关

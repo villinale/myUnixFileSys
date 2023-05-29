@@ -445,6 +445,7 @@ public:
 	void cpffs(string filename, string winpath);
 	void prin0penFileList();
 	void chmod(string path, int mode);
+	void changeseek(string path, int offset);
 
 	void relogin();
 	void adduser();
