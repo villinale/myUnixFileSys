@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-24 11:09:29
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 01:03:25
+ * @LastEditTime: 2023-05-30 00:34:08
  * @Description: 请填写简介
  */
 #include "../h/header.h"
@@ -28,14 +28,13 @@ void SuperBlock::Init()
     unsigned int end = NUM_BLOCK_ALL;
     unsigned int start = POSITION_BLOCK;
     int numgroup = (end - start + 1) / NUM_FREE_BLOCK_GROUP + 1;
-    // 根据计算得会成为5组,分别是[79,100,100,100,99]，不能随便改变const的常量
-    // 由于第一组是99个，所以一开始s_nfree会加1，一开始管理79个盘块
+    // 由于第一组是99个，所以一开始s_nfree会加1，一开始管理59个盘块
     this->s_nfree = end - start - (numgroup - 1) * NUM_FREE_BLOCK_GROUP + 1;
 
     BufferManager *bufManager = fs.GetBufferManager();
     Buf *bp;
     // 开始分配，总共分配的盘块号[start,end]，两端都取
-    // 给superblock分配第5组
+    // 给superblock分配最后1组
     for (int i = 0; i < this->s_nfree; i++) // 反着写让位置小的盘块先被分掉
         this->s_free[i] = this->s_nfree + start - i - 1;
     // bufManager->bwrite((const char*)this->s_free, P, (NUM_FREE_BLOCK_GROUP + 1) * sizeof(int));

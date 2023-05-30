@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 17:22:10
+ * @LastEditTime: 2023-05-29 22:27:32
  * @Description: Inode类相关操作
  */
 
@@ -126,7 +126,9 @@ int Inode::AssignMode(unsigned short mode)
 {
     if (mode & Inode::IFILE || mode & Inode::IDIR || mode & Inode::ILARG)
         return -1;
-    this->i_mode = mode;
+    this->i_mode &= ~(OWNER_R | OWNER_W | GROUP_R | GROUP_W | OTHER_R | OTHER_W);
+    this->i_mode |= mode & (OWNER_R | OWNER_W | GROUP_R | GROUP_W | OTHER_R | OTHER_W);
+    return 0;
 }
 
 /// @brief 清空Inode内容

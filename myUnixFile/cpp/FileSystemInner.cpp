@@ -393,7 +393,6 @@ void FileSystem::IPut(Inode *pNode)
     // 当前进程为引用该内存Inode的唯一进程，且准备释放该内存Inode
     if (pNode->i_count == 1)
     {
-        pNode->i_mtime = unsigned int(time(NULL));
         pNode->i_atime = unsigned int(time(NULL));
         pNode->WriteI();
         // TODO:在这里源码没搞懂：为什么时先释放了外存inode，还把内存inode信息更新

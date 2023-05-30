@@ -1,6 +1,9 @@
 #pragma once
 
-// 其实这些错误码在C++中本身就已经被定义了
+// 其实这些错误码在C++中本身就已经被定义了 列出来只是方便查看
+
+/*
+* 主要用到上面一块的错误码
 #define EPERM 1         // Operation not permitted 操作不允许
 #define ENOENT 2        // No such file or directory 没有这样的文件或目录
 #define EBADF 9         // Bad file number 坏的文件描述符
@@ -14,7 +17,6 @@
 #define EOVERFLOW 75    // Value too large for defined data type 值太大,对于定义数据类型
 #define EUSERS 87       // Too many users 用户太多
 
-/*
 #define	ESRCH	3	//No such process 没有这样的过程
 #define	EINTR	4	//Interrupted system call 系统调用被中断
 #define	EIO		5	//I/O error I/O错误

@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 19:52:01
+ * @LastEditTime: 2023-05-29 21:15:25
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -26,13 +26,13 @@ void FileSystem::help()
     printf("touch <file-name>                       在当前目录下创建名称为file-name的文件\n");
     printf("rm    <file-name>                       删除当前目录里名称为file-name的文件\n");
     printf("open  <file-name>                       打开当前目录里名称为file-name的文件\n");
+    printf("chmod <file-name> <mode>                修改当前目录下名称为file-name的文件的权限为mode\n");
     printf("close <file-name>                       关闭当前目录里名称为file-name的文件\n");
     printf("print <file-name>                       读取并打印当前目录里名称为file-name的文件内容(需要先打开文件)\n");
     printf("fseek <file-name> <offset>              移动文件指针offset个偏移量，可以为负\n");
-    printf("write <file-name> [offset] [mode]       在当前目录里名称为file-name的文件里,选择从offset位置开始写入(需要先打开文件)\n");
-    printf("                                        offset可选,输入整数,表示偏移量\n");
-    printf("                                        mode可选,有三种模式:0表示从文件头+offset位置开始写,\n");
-    printf("                                        1表示从文件指针位置+offset开始写,2表示从文件尾-offset开始写,默认从头开始写\n");
+    printf("write <file-name> [mode]                在当前目录里名称为file-name的文件里开始写入(需要先打开文件)\n");
+    printf("                                        mode可选,有三种模式:0表示从文件头位置开始写,\n");
+    printf("                                        1表示从文件指针位置开始写,2表示从文件尾开始写,默认模式为0\n");
     printf("                                        输入后进入写入模式,输入写入内容,按ESC键表示结束\n");
     printf("cpfwin <win-path>                       将windows系统电脑上路径为win-path的文件复制到当前目录中\n");
     printf("cpffs  <file-name> <win-path>           将本系统上当前目录中名称为file-name的文件复制到电脑上路径为win-path的文件里(需要先打开文件)\n");
@@ -41,6 +41,7 @@ void FileSystem::help()
     printf("relogin                                 重新登录,会关闭所有的文件,完成之前所有的任务\n");
     printf("adduser                                 添加新用户,但是只能由root用户操作\n");
     printf("deluser                                 删除用户,但是只能由root用户操作\n");
+    printf("chgroup                                 改变用户用户组,但是只能由root用户操作\n");
     printf("listuser                                打印所有用户信息\n");
     printf("----------------其他----------------\n");
     printf("format                                  格式化文件系统\n");
@@ -354,7 +355,7 @@ void FileSystem::printFile(string path)
          << "文件结束!" << endl;
 }
 
-void FileSystem::writeFile(string path, int offset, int mode)
+void FileSystem::writeFile(string path, int mode)
 {
     int fd = this->openFileMap[this->GetAbsolutionPath(path)];
     if (fd == 0)
@@ -370,7 +371,7 @@ void FileSystem::writeFile(string path, int offset, int mode)
         return;
     }
 
-    if (this->fseek(fp, offset, mode) == -1)
+    if (this->fseek(fp, 0, mode) == -1)
     {
         cout << "文件指针移动失败!" << endl;
         return;
@@ -614,6 +615,30 @@ void FileSystem::adduser()
     return;
 }
 
+void FileSystem::chgroup()
+{
+    if (this->curId != 0)
+    {
+        cout << "只有root用户才能修改用户组!" << endl;
+        return;
+    }
+
+    string name, temp;
+    short uid, id;
+    cout << "请输入用户名:";
+    getline(cin, name);
+    cout << "请输入组id(root组id为0,unix组id为1):";
+    getline(cin, temp);
+    if (name.empty() || temp.empty())
+    {
+        cout << "输入非法!" << endl;
+        return;
+    }
+    uid = atoi(temp.c_str());
+    this->userTable->ChangerUserGID(this->curId, name.c_str(), uid);
+    return;
+}
+
 void FileSystem::deluser()
 {
     string name;
@@ -664,6 +689,7 @@ void FileSystem::fun()
     string strIn;
     while (true)
     {
+        input.clear();
         cout << endl
              << this->curName << this->curDir << ">";
         getline(cin, strIn);
@@ -762,14 +788,13 @@ void FileSystem::fun()
             }
             else if (input[0] == "write")
             {
-                if (input.size() < 2 || input.size() > 4)
+                if (input.size() < 2 || input.size() > 3)
                 {
                     cout << "输入非法!" << endl;
                     continue;
                 }
-                int offset = input.size() == 3 ? atoi(input[2].c_str()) : 0;
-                int mode = input.size() == 4 ? atoi(input[3].c_str()) : 0;
-                this->writeFile(input[1], offset, mode);
+                int mode = input.size() == 3 ? atoi(input[2].c_str()) : 0;
+                this->writeFile(input[1], mode);
             }
             else if (input[0] == "print")
             {
@@ -780,6 +805,15 @@ void FileSystem::fun()
                 }
                 this->printFile(input[1]);
             }
+            else if (input[0] == "cpffs")
+            {
+                if (input.size() < 3 || input.size() > 3)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->cpffs(input[1], input[2]);
+            }
             else if (input[0] == "cpfwin")
             {
                 if (input.size() < 2 || input.size() > 2)
@@ -789,14 +823,14 @@ void FileSystem::fun()
                 }
                 this->cpfwin(input[1]);
             }
-            else if (input[0] == "cpffs")
+            else if (input[0] == "chmod")
             {
                 if (input.size() < 3 || input.size() > 3)
                 {
                     cout << "输入非法!" << endl;
                     continue;
                 }
-                this->cpffs(input[1], input[2]);
+                this->chmod(input[1], stoi(input[2]));
             }
             else if (input[0] == "listopen")
             {
@@ -826,6 +860,15 @@ void FileSystem::fun()
                     continue;
                 }
                 this->relogin();
+            }
+            else if (input[0] == "chgroup")
+            {
+                if (input.size() < 1 || input.size() > 1)
+                {
+                    cout << "输入非法!" << endl;
+                    continue;
+                }
+                this->chgroup();
             }
             else if (input[0] == "adduser")
             {

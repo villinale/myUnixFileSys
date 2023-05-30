@@ -126,10 +126,43 @@ short UserTable::GetGId(const short id)
 /// @param name 用户名
 /// @param password 密码
 /// @return 返回用户id	如果没有找到返回-1
-short UserTable::FindUser(const char* name, const char* password)
+short UserTable::FindUser(const char *name, const char *password)
 {
 	for (int i = 0; i < NUM_USER; i++)
 		if (strcmp(this->u_name[i], name) == 0 && strcmp(this->u_password[i], password) == 0)
 			return this->u_id[i];
 	return -1;
+}
+
+void UserTable::ChangerUserGID(const short id, const char *name, const short gid)
+{
+	if (id != ROOT_ID)
+	{
+		cout << "没有权限修改用户所在组!只有root用户才可以" << endl;
+		throw(EPERM);
+		return;
+	}
+
+	if (strcmp(name, "root") == 0)
+	{
+		cout << "root不可被修改所在组!" << endl;
+		throw(EPERM);
+		return;
+	}
+
+	bool isfind = false;
+	for (int i = 1; i < NUM_USER; i++)
+	{
+		if (strcmp(this->u_name[i], name) == 0)
+		{
+			isfind = true;
+			this->u_gid[i] = gid;
+			cout << "修改成功!" << endl;
+			return;
+		}
+	}
+
+	if (isfind == false)
+		cout << "没有该用户信息!" << endl;
+	return;
 }

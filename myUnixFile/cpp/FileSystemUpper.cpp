@@ -125,7 +125,13 @@ int FileSystem::fcreate(string path)
 	// 果然有问题啊这句话！！！！
 	memcpy(fatherBuf->b_addr, directory2Char(fatherDir), sizeof(Directory));
 	this->bufManager->Bwrite(fatherBuf);
-	// this->bufManager->bwrite(directory2Char(fatherDir), POSITION_BLOCK + fatherBuf->b_blkno, sizeof(fatherDir));
+
+	fatherInode->i_size += sizeof(Directory) / NUM_SUB_DIR; // 父亲的大小增加一个目录项
+	fatherInode->i_atime = unsigned int(time(NULL));
+	fatherInode->i_mtime = unsigned int(time(NULL));
+
+	fatherInode->WriteI();
+	
 
 	// 释放所有Inode
 	if (fatherInode != this->rootDirInode && fatherInode != this->curDirInode)
@@ -253,6 +259,8 @@ int FileSystem::mkdir(string path)
 	// 将新文件夹写入其父亲的目录项中
 	fatherDir.mkdir(name.c_str(), newinode->i_number);
 	fatherInode->i_size += sizeof(Directory) / NUM_SUB_DIR; // 父亲的大小增加一个目录项
+	fatherInode->i_atime = unsigned int(time(NULL));
+	fatherInode->i_mtime = unsigned int(time(NULL));
 	memcpy(fatherBuf->b_addr, directory2Char(&fatherDir), sizeof(Directory));
 
 	// 统一写回：父目录inode，新目录inode，父目录数据块、新目录数据块
@@ -525,6 +533,8 @@ int FileSystem::fdelete(string path)
 	// 删除父目录下的文件项
 	fatherDir->deletei(iinDir);
 	fatherInode->i_size -= sizeof(Directory) / NUM_SUB_DIR; // 父亲的大小减小一个目录项
+	fatherInode->i_atime = unsigned int(time(NULL));
+	fatherInode->i_mtime = unsigned int(time(NULL));
 	memcpy(fatherBuf->b_addr, directory2Char(fatherDir), sizeof(Directory));
 
 	// 统一写回：父目录inode 父目录数据块
@@ -622,6 +632,7 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 		pInode->i_size = fp->f_offset;
 
 	pInode->i_mtime = time(NULL);
+	pInode->i_atime = time(NULL);
 }
 
 /// @brief 移动文件指针

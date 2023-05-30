@@ -110,6 +110,8 @@ public:
 	// 删除用户
 	void DeleteUser(const short id, const char *name);
 
+	void ChangerUserGID(const short id, const char *name, const short gid);
+
 	short GetGId(const short id);
 
 	short FindUser(const char *name, const char *password);
@@ -139,12 +141,10 @@ public:
 class SuperBlock
 {
 public:
-	unsigned int s_isize; // Inode区占用的盘块数
-	unsigned int s_fsize; // 盘块总数
-
-	unsigned int s_ninode;				  // 直接管理的空闲外存Inode数量
-	unsigned int s_inode[NUM_FREE_INODE]; // 直接管理的空闲外存Inode索引表
-
+	unsigned int s_isize;					   // Inode区占用的盘块数
+	unsigned int s_fsize;					   // 盘块总数
+	unsigned int s_ninode;					   // 直接管理的空闲外存Inode数量
+	unsigned int s_inode[NUM_FREE_INODE];	   // 直接管理的空闲外存Inode索引表
 	unsigned int s_nfree;					   // 直接管理的空闲盘块数量
 	unsigned int s_free[NUM_FREE_BLOCK_GROUP]; // 直接管理的空闲盘块索引表
 	char padding[SIZE_PADDING];				   // 填充使SuperBlock块大小等于1024字节，占据2个扇区,非常有必要！！！！
@@ -164,16 +164,14 @@ public:
 class DiskInode
 {
 public:
-	short d_uid;		 /* 文件所有者的用户标识数 */
-	short d_gid;		 /* 文件所有者的组标识数 */
-	unsigned int d_mode; /* 状态的标志位，定义见enum INodeFlag */
-	int d_nlink;		 /* 文件联结计数，即该文件在目录树中不同路径名的数量 */
-
-	int d_size;				/* 文件大小，字节为单位 */
-	int d_addr[NUM_I_ADDR]; /* 用于文件逻辑块好和物理块好转换的基本索引表 */
-
-	int d_atime; /* 最后访问时间 */
-	int d_mtime; /* 最后修改时间 */
+	short d_uid;			// 文件所有者的用户标识数
+	short d_gid;			// 文件所有者的组标识数
+	unsigned int d_mode;	// 状态的标志位，定义见enum INodeFlag
+	int d_nlink;			// 文件联结计数，即该文件在目录树中不同路径名的数量
+	int d_size;				// 文件大小，字节为单位
+	int d_addr[NUM_I_ADDR]; // 用于文件逻辑块好和物理块好转换的基本索引表
+	unsigned int d_atime;	// 最后访问时间
+	unsigned int d_mtime;	// 最后修改时间
 };
 
 /*
@@ -183,12 +181,8 @@ public:
 class Buf
 {
 public:
-	enum BufFlag /* b_flags中标志位 */
+	enum BufFlag
 	{
-		// B_ERROR = 0x8,	 // I/O因出错而终止
-		// B_BUSY = 0x10,	 // 相应缓存正在使用中
-		// B_WANTED = 0x20, // 有进程正在等待使用该buf管理的资源，清B_BUSY标志时，要唤醒这种进程
-		// B_ASYNC = 0x40, // 异步I/O，不需要等待其结束
 		B_NONE = 0x0,	// 初始化
 		B_WRITE = 0x1,	// 写操作。将缓存中的信息写到内存上去
 		B_READ = 0x2,	// 读操作。从内存读取信息到缓存中
@@ -197,13 +191,11 @@ public:
 	};
 
 public:
-	unsigned int b_flags; /* 缓存控制块标志位,定义见enum BufFlag */
-	/* 缓存控制块队列勾连指针 */
-	Buf *b_forw;  // 当前缓存控制块的前驱节点,将Buf插入NODEV队列或某一设备队列
-	Buf *b_back;  // 当前缓存控制块的后继节点,将Buf插入NODEV队列或某一设备队列
-	Buf *av_forw; // 上一个空闲缓存控制块的指针,将Buf插入自由队列或某一I/O请求队列
-	Buf *av_back; // 下一个空闲缓存控制块的指针,将Buf插入自由队列或某一I/O请求队列
-
+	unsigned int b_flags;  /* 缓存控制块标志位,定义见enum BufFlag */
+	Buf *b_forw;		   // 当前缓存控制块的前驱节点,将Buf插入NODEV队列或某一设备队列
+	Buf *b_back;		   // 当前缓存控制块的后继节点,将Buf插入NODEV队列或某一设备队列
+	Buf *av_forw;		   // 上一个空闲缓存控制块的指针,将Buf插入自由队列或某一I/O请求队列
+	Buf *av_back;		   // 下一个空闲缓存控制块的指针,将Buf插入自由队列或某一I/O请求队列
 	unsigned int b_wcount; // 需传送的字节数,但是好像没啥用
 	char *b_addr;		   // 指向该缓存控制块所管理的缓冲区的首地址
 	unsigned int b_blkno;  // 内存逻辑块号
@@ -234,20 +226,16 @@ public:
 	};
 
 public:
-	short i_uid; // 文件所有者的用户标识数
-	short i_gid; // 文件所有者的组标识数
-
-	unsigned short i_mode; // 文件权限，定义见enum INodeMode
-	short i_nlink;		   // 文件联结计数，即该文件在目录树中不同路径名的数量
-
+	short i_uid;			// 文件所有者的用户标识数
+	short i_gid;			// 文件所有者的组标识数
+	unsigned short i_mode;	// 文件权限，定义见enum INodeMode
+	short i_nlink;			// 文件联结计数，即该文件在目录树中不同路径名的数量
 	int i_size;				// 文件大小，字节为单位
 	int i_addr[NUM_I_ADDR]; // 指向数据块区，用于文件逻辑块号和物理块号转换的基本索引表
-
-	unsigned int i_atime; // 最后访问时间
-	unsigned int i_mtime; // 最后修改时间
-
-	short i_count;	// 引用计数
-	short i_number; // 在inode区中的编号,放到最后以便于将内存Inode转换为外存Inode
+	unsigned int i_atime;	// 最后访问时间
+	unsigned int i_mtime;	// 最后修改时间
+	short i_count;			// 引用计数
+	short i_number;			// 在inode区中的编号,放到最后以便于将内存Inode转换为外存Inode
 
 	Inode();
 
@@ -286,10 +274,10 @@ public:
 class File
 {
 public:
-	Inode *f_inode;		   /* 指向打开文件的内存Inode指针 */
-	unsigned int f_offset; /* 文件读写位置指针 */
-	short f_uid;		   /* 文件所有者的用户标识数 */
-	short f_gid;		   /* 文件所有者的组标识数 */
+	Inode *f_inode;		   // 指向打开文件的内存Inode指针
+	unsigned int f_offset; // 文件读写位置指针
+	short f_uid;		   // 文件所有者的用户标识数
+	short f_gid;		   // 文件所有者的组标识数
 
 	File();
 
@@ -439,7 +427,7 @@ public:
 	void createFile(string path);
 	void removefile(string path);
 	void closeFile(string path);
-	void writeFile(string path, int offset, int mode);
+	void writeFile(string path, int mode);
 	void printFile(string path);
 	void cpfwin(string path);
 	void cpffs(string filename, string winpath);
@@ -449,6 +437,7 @@ public:
 
 	void relogin();
 	void adduser();
+	void chgroup();
 	void deluser();
 	void printUserList();
 
