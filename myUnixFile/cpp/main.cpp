@@ -5,6 +5,7 @@ FileSystem fs;
 
 int main()
 {
+	cout << sizeof(DiskInode);
 	cout << "欢迎来到myUnixFile系统!" << endl;
 	cout << "       /\\_/\\ " << endl;
 	cout << "     ( > o < )" << endl;

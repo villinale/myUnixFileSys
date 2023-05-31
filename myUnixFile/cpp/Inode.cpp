@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-10 14:16:31
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-29 22:27:32
+ * @LastEditTime: 2023-05-31 19:38:40
  * @Description: Inode类相关操作
  */
 
@@ -115,6 +115,8 @@ void Inode::ICopy(Buf *bp, int inumber)
     this->i_gid = dp->d_gid;
     this->i_size = dp->d_size;
     this->i_number = inumber;
+    this->i_atime = dp->d_atime;
+    this->i_mtime = dp->d_mtime;
     this->i_count = 1;
     for (int i = 0; i < NUM_I_ADDR; i++)
         this->i_addr[i] = dp->d_addr[i];
@@ -172,7 +174,7 @@ void Inode::WriteI()
     dp->d_mtime = this->i_mtime;
     for (int i = 0; i < NUM_I_ADDR; i++)
         dp->d_addr[i] = this->i_addr[i];
-    memcpy(bp->b_addr + offset, dp, SIZE_DISKINODE);
+    memcpy(bp->b_addr + offset, dp, sizeof(DiskInode));
     bufMgr->Bwrite(bp);
     delete dp;
 }
@@ -258,4 +260,45 @@ string Inode::GetModeString(int id, int gid)
         permissionString += (this->i_mode & OTHER_W) ? "w" : "-";
     }
     return permissionString;
+}
+
+/// @brief 将文件权限字符串转换为mode
+/// @param mode 文件权限字符串
+/// @return unsigned short 返回mode 错误返回-1
+unsigned short Inode::String2Mode(string mode)
+{
+    if (mode.length() != 6)
+        return -1;
+    unsigned short modeNum = 0;
+    if (mode[0] == 'r')
+        modeNum |= OWNER_R;
+    else if (mode[0] != '-')
+        return -1;
+
+    if (mode[1] == 'w')
+        modeNum |= OWNER_W;
+    else if (mode[1] != '-')
+        return -1;
+
+    if (mode[2] == 'r')
+        modeNum |= GROUP_R;
+    else if (mode[2] != '-')
+        return -1;
+
+    if (mode[3] == 'w')
+        modeNum |= GROUP_W;
+    else if (mode[3] != '-')
+        return -1;
+
+    if (mode[4] == 'r')
+        modeNum |= OTHER_R;
+    else if (mode[4] != '-')
+        return -1;
+
+    if (mode[5] == 'w')
+        modeNum |= OTHER_W;
+    else if (mode[5] != '-')
+        return -1;
+
+    return modeNum;
 }

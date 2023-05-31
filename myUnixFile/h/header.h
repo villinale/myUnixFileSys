@@ -265,6 +265,9 @@ public:
 
 	// 根据id和gid获取文件权限字符串
 	string GetModeString(int id, int gid);
+
+	// 通过字符串获取mode
+	unsigned short String2Mode(string mode);
 };
 
 /*
@@ -432,7 +435,7 @@ public:
 	void cpfwin(string path);
 	void cpffs(string filename, string winpath);
 	void prin0penFileList();
-	void chmod(string path, int mode);
+	void chmod(string path, string mode);
 	void changeseek(string path, int offset);
 
 	void relogin();

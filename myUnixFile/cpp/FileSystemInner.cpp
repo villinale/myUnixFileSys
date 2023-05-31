@@ -367,7 +367,8 @@ void FileSystem::Free(int blkno)
         memcpy(pBuf->b_addr, uintArray2Char(stack, NUM_FREE_BLOCK_GROUP + 1), sizeof(int) * NUM_FREE_BLOCK_GROUP + 1);
         bufManager->Bwrite(pBuf);
 
-        this->spb->s_nfree = 0;
+        this->spb->s_free[0] = blkno;
+        this->spb->s_nfree = 1;
     }
 
     // йм╥ейЩ╬щел©И╨е

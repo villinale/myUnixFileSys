@@ -631,8 +631,8 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 	if (pInode->i_size < fp->f_offset)
 		pInode->i_size = fp->f_offset;
 
-	pInode->i_mtime = time(NULL);
-	pInode->i_atime = time(NULL);
+	pInode->i_mtime = unsigned int(time(NULL));
+	pInode->i_atime = unsigned int(time(NULL));
 }
 
 /// @brief 移动文件指针
@@ -745,7 +745,7 @@ void FileSystem::fread(File *fp, char *&buffer, int count)
 	}
 	buffer[count] = '\0'; // 设置结束标记
 
-	pInode->i_atime = time(NULL);
+	pInode->i_atime = unsigned int(time(NULL));
 }
 
 FileSystem::~FileSystem()
