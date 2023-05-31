@@ -132,7 +132,9 @@ DiskInode *char2DiskInode(char *ch)
 /// @return  vector<string> 分割后的字符串数组
 vector<string> stringSplit(const string &strIn, char delim)
 {
-    char *str = const_cast<char *>(strIn.c_str());
+    char* str = new char[strIn.size()+1];
+    strcpy(str,strIn.c_str());
+    str[strIn.size()] = '\0';
     string s;
     s.append(1, delim);
     vector<string> elems;

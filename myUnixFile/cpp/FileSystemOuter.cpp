@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-31 19:38:08
+ * @LastEditTime: 2023-05-31 19:44:33
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -425,8 +425,10 @@ void FileSystem::cpfwin(string path)
     fd.seekg(0, fd.end);
     int filesize = fd.tellg(); // 获取文件大小
     fd.seekg(0, fd.beg);
-    char *buffer = new char[filesize];
+    char* buffer = new char[filesize + 1];
     fd.read(buffer, filesize); // 读取文件内容
+    buffer[filesize] = '\0';
+    cout << buffer << endl;
     fd.close();
 
     vector<string> paths = stringSplit(path, '\\'); // win系统上的路径分割符为'\'
@@ -846,7 +848,7 @@ void FileSystem::fun()
                     cout << "输入非法!" << endl;
                     continue;
                 }
-                this->chmod(input[1], stoi(input[2]));
+                this->chmod(input[1], input[2]);
             }
             else if (input[0] == "listopen")
             {

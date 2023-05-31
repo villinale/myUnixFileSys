@@ -594,7 +594,7 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 		// 计算本次写入位置在文件中的位置
 		int startpos = fp->f_offset;
 		// 计算本次写入物理盘块号，如果文件大小不够的话会在里面新分配物理盘块
-		int blkno = pInode->Bmap(startpos % SIZE_BLOCK);
+		int blkno = pInode->Bmap(startpos / SIZE_BLOCK);
 		// 计算本次写入的大小
 		int size = SIZE_BLOCK - startpos % SIZE_BLOCK;
 		if (size > count - pos)
@@ -607,6 +607,7 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 			Buf *pBuf = this->bufManager->GetBlk(blkno);
 			// 将数据写入缓存
 			memcpy(pBuf->b_addr, buffer + pos, size);
+			cout << buffer + pos << endl;
 			// 将数据立即写入磁盘
 			this->bufManager->Bwrite(pBuf);
 		}
@@ -616,6 +617,7 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 			Buf *pBuf = this->bufManager->Bread(blkno);
 			// 将数据写入缓存
 			memcpy(pBuf->b_addr + startpos % SIZE_BLOCK, buffer + pos, size);
+			cout << buffer + pos << endl;
 
 			// 写到缓存末尾---异步写
 			if (startpos % SIZE_BLOCK + size == SIZE_BLOCK)
@@ -731,7 +733,7 @@ void FileSystem::fread(File *fp, char *&buffer, int count)
 		if (startpos >= pInode->i_size) // 读取位置超出文件大小
 			break;
 		// 计算本次读取物理盘块号，由于上一个判断,不会有读取位置超出文件大小的问题
-		int blkno = pInode->Bmap(startpos % SIZE_BLOCK);
+		int blkno = pInode->Bmap(startpos / SIZE_BLOCK);
 		// 计算本次读取的大小
 		int size = SIZE_BLOCK - startpos % SIZE_BLOCK;
 		if (size > count - pos)
