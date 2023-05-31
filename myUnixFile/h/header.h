@@ -83,8 +83,8 @@ static const int NUM_FILE = 100;
 static const int NUM_INODE = 100;
 // 大型文件使用的最多的盘块数量
 static const int NUM_FILE_INDEX = SIZE_BLOCK / sizeof(int);
-static const int NUM_BLOCK_IFILE = 8;
-static const int NUM_BLOCK_ILARG = NUM_FILE_INDEX * 2 + NUM_BLOCK_IFILE;
+static const int NUM_BLOCK_IFILE = 5;
+static const int NUM_BLOCK_ILARG = NUM_FILE_INDEX * (NUM_I_ADDR - NUM_BLOCK_IFILE) + NUM_BLOCK_IFILE;
 
 // 实现字符串分割
 vector<string>
@@ -141,14 +141,14 @@ public:
 class SuperBlock
 {
 public:
-	unsigned int s_isize;					   // Inode区占用的盘块数
-	unsigned int s_fsize;					   // 盘块总数
-	unsigned int s_ninode;					   // 直接管理的空闲外存Inode数量
-	unsigned int s_inode[NUM_FREE_INODE];	   // 直接管理的空闲外存Inode索引表
-	unsigned int s_nfree;					   // 直接管理的空闲盘块数量
-	unsigned int s_free[NUM_FREE_BLOCK_GROUP]; // 直接管理的空闲盘块索引表
-	char padding[SIZE_PADDING];				   // 填充使SuperBlock块大小等于1024字节，占据2个扇区,非常有必要！！！！
-											   // 我使用了char而已
+	unsigned int s_isize;			  // Inode区占用的盘块数
+	unsigned int s_fsize;			  // 盘块总数
+	int s_ninode;					  // 直接管理的空闲外存Inode数量
+	int s_inode[NUM_FREE_INODE];	  // 直接管理的空闲外存Inode索引表
+	int s_nfree;					  // 直接管理的空闲盘块数量
+	int s_free[NUM_FREE_BLOCK_GROUP]; // 直接管理的空闲盘块索引表
+	char padding[SIZE_PADDING];		  // 填充使SuperBlock块大小等于1024字节，占据2个扇区,非常有必要！！！！
+									  // 我使用了char而已
 
 	// 初始化SuperBlock
 	void Init();
@@ -433,7 +433,7 @@ public:
 	void writeFile(string path, int mode);
 	void printFile(string path);
 	void cpfwin(string path);
-	void cpffs(string filename, string winpath);
+	void cpffs(string filename, string winpath,int count);
 	void prin0penFileList();
 	void chmod(string path, string mode);
 	void changeseek(string path, int offset);

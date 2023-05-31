@@ -62,7 +62,7 @@ int Inode::Bmap(int lbn)
     }
     else
     {
-        int index = (lbn - NUM_BLOCK_IFILE) / NUM_FILE_INDEX;
+        int index = (lbn - NUM_BLOCK_IFILE) / NUM_FILE_INDEX + NUM_BLOCK_IFILE;
         phyBlkno = this->i_addr[index];
         if (phyBlkno == 0)
         {

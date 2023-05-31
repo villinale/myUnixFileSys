@@ -227,11 +227,11 @@ Buf *FileSystem::Alloc()
         int *p = (int *)pBuf->b_addr;
 
         // 首先读出空闲盘块数s_nfre
-        this->spb->s_nfree = (unsigned int)pBuf->b_addr[0];
+        this->spb->s_nfree = (int)p[0];
 
         // 根据空闲盘块数读取空闲盘块索引表
         for (int i = 0; i < this->spb->s_nfree; i++)
-            this->spb->s_free[i] = (unsigned int)pBuf->b_addr[i + 1];
+            this->spb->s_free[i] = (int)p[i + 1];
     }
 
     // 这样的话分配一空闲磁盘块，返回该磁盘块的缓存指针
@@ -360,7 +360,7 @@ void FileSystem::Free(int blkno)
         // s_free[0]=回收的盘块号
         // s_nfree=1
         // 以上摘自PPT
-        unsigned int *stack = new unsigned int[NUM_FREE_BLOCK_GROUP + 1]{0}; // 第一位是链接的上一组的盘块个数
+        int *stack = new int[NUM_FREE_BLOCK_GROUP + 1]{0}; // 第一位是链接的上一组的盘块个数
         stack[0] = this->spb->s_nfree;                                       // 第一位是链接的上一组的盘块个数
         for (int i = 0; i < NUM_FREE_BLOCK_GROUP; i++)
             stack[i + 1] = this->spb->s_free[i];

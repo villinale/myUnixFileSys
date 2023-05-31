@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-21 16:44:37
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-31 19:44:33
+ * @LastEditTime: 2023-05-31 21:55:56
  * @Description: FileSystem类在main中可以调用的可交互的函数,尽量做到只输出
  */
 
@@ -38,7 +38,8 @@ void FileSystem::help()
     printf("                                        1表示从文件指针位置开始写,2表示从文件尾开始写,默认模式为0\n");
     printf("                                        输入后进入写入模式,输入写入内容,按ESC键表示结束\n");
     printf("cpfwin <win-path>                       将windows系统电脑上路径为win-path的文件复制到当前目录中\n");
-    printf("cpffs  <file-name> <win-path>           将本系统上当前目录中名称为file-name的文件复制到电脑上路径为win-path的文件里(需要先打开文件)\n");
+    printf("cpffs <file-name> <win-path> <count>    将本系统上当前目录中名称为file-name的文件按从文件指针开始的位置复制count个字节\n");
+    printf("                                        到电脑上路径为win-path的文件里(需要先打开文件)\n");
     printf("listopen                                打印已打开文件列表\n");
     printf("--------------用户相关---------------\n");
     printf("relogin                                 重新登录,会关闭所有的文件,完成之前所有的任务\n");
@@ -425,10 +426,9 @@ void FileSystem::cpfwin(string path)
     fd.seekg(0, fd.end);
     int filesize = fd.tellg(); // 获取文件大小
     fd.seekg(0, fd.beg);
-    char* buffer = new char[filesize + 1];
+    char *buffer = new char[filesize + 1];
     fd.read(buffer, filesize); // 读取文件内容
     buffer[filesize] = '\0';
-    cout << buffer << endl;
     fd.close();
 
     vector<string> paths = stringSplit(path, '\\'); // win系统上的路径分割符为'\'
@@ -446,7 +446,7 @@ void FileSystem::cpfwin(string path)
     }
 }
 
-void FileSystem::cpffs(string filename, string winpath)
+void FileSystem::cpffs(string filename, string winpath, int count)
 {
     fstream fd;
     fd.open(winpath, ios::out);
@@ -457,24 +457,28 @@ void FileSystem::cpffs(string filename, string winpath)
     }
 
     // 打开fs中的文件
-    int fileloc = this->fopen(filename);
-    File *fp = &(this->openFileTable[fileloc]);
+    int fileloc = this->openFileMap[this->GetAbsolutionPath(filename)];
+    if (fileloc == 0)
+    {
+        cout << "文件未打开!请先使用open指令打开文件" << endl;
+        return;
+    }
+
+    File* fp = &(this->openFileTable[fileloc - 1]);
+
     char *buffer = NULL;
-    int count = fp->f_inode->i_size;
-    int oldoffset = fp->f_offset; // 记录旧的文件指针位置
-    fp->f_offset = 0;
-    this->fread(fp, buffer, count);
-    fp->f_offset = oldoffset;
-    this->fclose(fp);
+    // 修正读取大小
+    int actcount = ((count + fp->f_offset) < fp->f_inode->i_size) ? count : (fp->f_inode->i_size - fp->f_offset);
+    this->fread(fp, buffer, actcount);
 
     if (buffer == NULL)
     {
         cout << "为空!" << endl;
         return;
     }
-    fd.write(buffer, count); // 写入文件内容
+    fd.write(buffer, actcount); // 写入文件内容
     fd.close();
-    cout << "成功导出文件" << filename << ",写入大小为" << count << endl;
+    cout << "成功导出文件" << filename << ",写入大小为" << actcount << endl;
 }
 
 void FileSystem::prin0penFileList()
@@ -825,12 +829,12 @@ void FileSystem::fun()
             }
             else if (input[0] == "cpffs")
             {
-                if (input.size() < 3 || input.size() > 3)
+                if (input.size() < 4 || input.size() > 4)
                 {
                     cout << "输入非法!" << endl;
                     continue;
                 }
-                this->cpffs(input[1], input[2]);
+                this->cpffs(input[1], input[2],stoi(input[3]));
             }
             else if (input[0] == "cpfwin")
             {

@@ -25,8 +25,8 @@ void SuperBlock::Init()
 
     // 成组链接,从地址最大开始进行链接
     // SPB管理位置最小的盘块
-    unsigned int end = NUM_BLOCK_ALL;
-    unsigned int start = POSITION_BLOCK;
+    int end = NUM_BLOCK_ALL;
+    int start = POSITION_BLOCK;
     int numgroup = (end - start + 1) / NUM_FREE_BLOCK_GROUP + 1;
     // 由于第一组是99个，所以一开始s_nfree会加1，一开始管理59个盘块
     this->s_nfree = end - start - (numgroup - 1) * NUM_FREE_BLOCK_GROUP + 1;
@@ -39,7 +39,7 @@ void SuperBlock::Init()
         this->s_free[i] = this->s_nfree + start - i - 1;
     // bufManager->bwrite((const char*)this->s_free, P, (NUM_FREE_BLOCK_GROUP + 1) * sizeof(int));
     //  给组内第一个盘块写入数据，分配的盘块号[starti,endi)
-    int iblk = start;                                        // 组内第一个盘块号
+    int iblk = start + this->s_nfree - 1;                    // 组内第一个盘块号
     int istart_addr = iblk * SIZE_BLOCK;                     // 组内第一个盘块的地址
     int inum = NUM_FREE_BLOCK_GROUP;                         // 上一组个数
     int starti = start + this->s_nfree;                      // 上一组开始的盘块号
@@ -47,7 +47,7 @@ void SuperBlock::Init()
     for (int i = 2; i <= numgroup; i++)                      // 最后一组已经给superblock分了
     {
         // 每次新建一个保证都是清零的
-        unsigned int *stack = new unsigned int[inum + 1]{0}; // 第一位是链接的上一组的盘块个数
+        int *stack = new int[inum + 1]{0}; // 第一位是链接的上一组的盘块个数
         int j = starti;
         stack[0] = inum;   // 第一位是链接的上一组的盘块个数
         if (i == numgroup) // 第一组盘块的第一个内容是0，标志结束
@@ -61,11 +61,13 @@ void SuperBlock::Init()
         // bufManager->bwrite(uintArray2Char(stack, inum + 1), istart_addr, (inum + 1) * sizeof(int));
         bp = bufManager->GetBlk(iblk);
         // 这里之前有内存泄漏
-        memcpy(bp->b_addr, uintArray2Char(stack, inum + 1), (inum + 1) * sizeof(char));
+        // 由于写入字节数是sizeof(int)*(100+1)=404所有只需要一个盘块
+        memcpy(bp->b_addr, stack, (inum + 1) * sizeof(int));
+        //memcpy(bp->b_addr, uintArray2Char(stack, inum + 1), (inum + 1) * sizeof(char));这样不对
         bufManager->Bwrite(bp);
 
         // 更新各个参数
-        iblk = endi;
+        iblk = stack[1];
         istart_addr = iblk * SIZE_BLOCK;
         inum = (i != (numgroup - 1)) ? NUM_FREE_BLOCK_GROUP : (NUM_FREE_BLOCK_GROUP - 1); // 第一组是NUM_FREE_BLOCK_GROUP - 1个
         starti = endi;

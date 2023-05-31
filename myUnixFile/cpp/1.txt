@@ -1,0 +1,28 @@
+--------------目录相关---------------
+ls                                      查看当前目录下的子目录
+dir                                     查看当前目录下的详细信息
+cd    <dir-name>                        打开在当前目录下名称为dir-name的子目录
+mkdir <dir-name>                        创建在当前目录下名称为dir-name的子目录
+rmdir <dir-name>                        删除在当前目录下名称为dir-name的子目录
+--------------文件相关---------------
+touch <file-name>                       在当前目录下创建名称为file-name的文件
+rm    <file-name>                       删除当前目录里名称为file-name的文件
+open  <file-name>                       打开当前目录里名称为file-name的文件
+close <file-name>                       关闭当前目录里名称为file-name的文件
+print <file-name>                       读取并打印当前目录里名称为file-name的文件内容(需要先打开文件)
+fseek <file-name> <offset>              移动文件指针offset个偏移量，可以为负
+write <file-name> [mode]                在当前目录里名称为file-name的文件里开始写入(需要先打开文件)
+                                        mode可选,有三种模式:0表示从文件头位置开始写,
+                                        1表示从文件指针位置开始写,2表示从文件尾开始写,默认模式为0
+                                        输入后进入写入模式,输入写入内容,按ESC键表示结束
+cpfwin <win-path>                       将windows系统电脑上路径为win-path的文件复制到当前目录中
+cpffs  <file-name> <win-path>           将本系统上当前目录中名称为file-name的文件复制到电脑上路径为win-path的文件里(需要先打开文件)
+listopen                                打印已打开文件列表
+--------------用户相关---------------
+relogin                                 重新登录,会关闭所有的文件,完成之前所有的任务
+adduser                                 添加新用户,但是只能由root用户操作
+deluser                                 删除用户,但是只能由root用户操作
+listuser                                打印所有用户信息
+----------------其他----------------
+format                                  格式化文件系统
+exit                                    退出系统

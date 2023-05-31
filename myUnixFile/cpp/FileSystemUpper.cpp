@@ -2,7 +2,7 @@
  * @Author: yingxin wang
  * @Date: 2023-05-12 08:12:28
  * @LastEditors: yingxin wang
- * @LastEditTime: 2023-05-26 16:50:26
+ * @LastEditTime: 2023-05-31 20:41:11
  * @Description: FileSystem类中最顶层的各类函数，被Outter文件中的函数调用
  */
 #include "../h/header.h"
@@ -131,7 +131,6 @@ int FileSystem::fcreate(string path)
 	fatherInode->i_mtime = unsigned int(time(NULL));
 
 	fatherInode->WriteI();
-	
 
 	// 释放所有Inode
 	if (fatherInode != this->rootDirInode && fatherInode != this->curDirInode)
@@ -600,6 +599,7 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 		if (size > count - pos)
 			size = count - pos; // 修正写入的大小
 
+		cout << "   [writing block no]:" << blkno << endl;
 		// 如果写入的起始位置为逻辑块的起始地址；写入字节数为512-------异步写
 		if (startpos % SIZE_BLOCK == 0 && size == SIZE_BLOCK)
 		{
@@ -607,7 +607,6 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 			Buf *pBuf = this->bufManager->GetBlk(blkno);
 			// 将数据写入缓存
 			memcpy(pBuf->b_addr, buffer + pos, size);
-			cout << buffer + pos << endl;
 			// 将数据立即写入磁盘
 			this->bufManager->Bwrite(pBuf);
 		}
@@ -617,7 +616,6 @@ void FileSystem::fwrite(const char *buffer, int count, File *fp)
 			Buf *pBuf = this->bufManager->Bread(blkno);
 			// 将数据写入缓存
 			memcpy(pBuf->b_addr + startpos % SIZE_BLOCK, buffer + pos, size);
-			cout << buffer + pos << endl;
 
 			// 写到缓存末尾---异步写
 			if (startpos % SIZE_BLOCK + size == SIZE_BLOCK)

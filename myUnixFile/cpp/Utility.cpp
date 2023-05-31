@@ -66,13 +66,17 @@ char *directory2Char(Directory *dir)
     }
 }
 
-char *uintArray2Char(unsigned int *arr, int len)
+char *uintArray2Char(int *arr, int len)
 {
     try
     {
-        char *ch = new char[len * sizeof(char)];
+        char* ch = new char[len * sizeof(int)];
         for (int i = 0; i < len; i++)
-            ch[i] = arr[i];
+        {
+            memcpy(ch, &(arr[i]), sizeof(int));
+            ch += sizeof(int);
+        }
+        ch -= sizeof(int) * len;
         return ch;
     }
     catch (exception &e)
@@ -80,6 +84,7 @@ char *uintArray2Char(unsigned int *arr, int len)
         cerr << "Exception caught: " << e.what() << endl;
     }
 }
+
 
 char *spb2Char(SuperBlock *spb)
 {

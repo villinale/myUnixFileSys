@@ -19,7 +19,7 @@ UserTable *char2UserTable(char *ch);
 
 char *directory2Char(Directory *dir);
 
-char *uintArray2Char(unsigned int *arr, int len);
+char *uintArray2Char(int *arr, int len);
 
 char *userTable2Char(UserTable *user);
 
